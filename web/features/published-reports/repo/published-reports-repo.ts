@@ -339,7 +339,7 @@ export async function getReportSignedUrl(
   // Create signed URL for download
   const { data, error } = await supabase.storage
     .from("reports")
-    .createSignedUrl(filePath, 3600, { download: null }); // null for inline
+    .createSignedUrl(filePath, 3600); // no download option for inline
 
   if (error || !data?.signedUrl) {
     return err(error?.message ?? "Failed to create URL.");
