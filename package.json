@@ -1,0 +1,27 @@
+{
+  "name": "neolyst-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Neolyst 项目开发环境",
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "build": "next build",
+    "start": "next start",
+    "supabase": "pnpm exec supabase",
+    "supabase:start": "pnpm exec supabase start",
+    "supabase:stop": "pnpm exec supabase stop",
+    "supabase:db:push": "pnpm exec supabase db push",
+    "supabase:db:push:dry-run": "pnpm exec supabase db push --dry-run",
+    "seed:auth": "NODE_PATH=web/node_modules npx -y tsx supabase/seed.ts",
+    "db:init": "bash scripts/db-init.sh",
+    "test:e2e": "bash scripts/run-tests.sh",
+    "test:e2e:headed": "cd tests && pnpm run test:headed",
+    "test:report": "cd tests && pnpm run test:report"
+  },
+  "dependencies": {
+    "next": "13.5.6",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "packageManager": "pnpm@10.29.3"
+}

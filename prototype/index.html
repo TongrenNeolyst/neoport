@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neolyst Design System Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+     * NEOLYST DESIGN TOKENS
+     * Theme: Refined Technical Luxury
+     * ═══════════════════════════════════════════════════════════════ */
+    :root {
+      /* Background layers */
+      --bg-canvas: hsl(220, 20%, 4%);
+      --bg-canvas-subtle: hsl(220, 20%, 6%);
+      --bg-surface: hsl(220, 18%, 8%);
+      --bg-surface-hover: hsl(220, 18%, 11%);
+      --bg-surface-active: hsl(220, 18%, 14%);
+      --bg-elevated: hsl(220, 16%, 12%);
+      --bg-elevated-hover: hsl(220, 16%, 15%);
+
+      /* Foreground */
+      --fg-primary: hsl(0, 0%, 98%);
+      --fg-secondary: hsl(220, 10%, 72%);
+      --fg-tertiary: hsl(220, 8%, 52%);
+      --fg-disabled: hsl(220, 6%, 38%);
+
+      /* Accent */
+      --accent: hsl(210, 100%, 55%);
+      --accent-soft: hsla(210, 100%, 55%, 0.15);
+      --accent-glow: hsla(210, 100%, 60%, 0.4);
+
+      /* Semantic */
+      --success: hsl(165, 70%, 45%);
+      --success-soft: hsla(165, 70%, 45%, 0.15);
+      --warning: hsl(38, 92%, 50%);
+      --warning-soft: hsla(38, 92%, 50%, 0.15);
+      --error: hsl(0, 72%, 55%);
+      --error-soft: hsla(0, 72%, 55%, 0.15);
+
+      /* Border */
+      --border-subtle: hsl(220, 12%, 18%);
+      --border-default: hsl(220, 12%, 22%);
+      --border-strong: hsl(220, 12%, 28%);
+
+      /* Radius */
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+
+      /* Shadows */
+      --shadow-sm: 0 2px 4px hsla(220, 30%, 2%, 0.4);
+      --shadow-md: 0 4px 12px hsla(220, 30%, 2%, 0.5);
+      --shadow-lg: 0 8px 24px hsla(220, 30%, 2%, 0.6);
+      --glow-md: 0 0 20px var(--accent-glow);
+
+      /* Spacing */
+      --sidebar-collapsed: 64px;
+      --sidebar-expanded: 256px;
+      --header-height: 64px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * BASE RESET
+     * ═══════════════════════════════════════════════════════════════ */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-canvas);
+      color: var(--fg-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    ::selection {
+      background: hsla(210, 100%, 55%, 0.3);
+      color: var(--fg-primary);
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-default);
+      border-radius: 9999px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-strong);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * UTILITIES
+     * ═══════════════════════════════════════════════════════════════ */
+    .text-gradient {
+      background: linear-gradient(135deg, var(--accent), hsl(200, 90%, 48%));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .glass {
+      background: hsla(220, 16%, 12%, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .glow-hover:hover {
+      box-shadow: var(--glow-md);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * COMPONENTS
+     * ═══════════════════════════════════════════════════════════════ */
+
+    /* Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 16px;
+      height: 40px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-accent {
+      background: var(--accent);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-accent:hover {
+      background: hsla(210, 100%, 55%, 0.9);
+      box-shadow: var(--glow-md);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--fg-primary);
+      border: 1px solid var(--border-default);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-surface-hover);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--fg-secondary);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-surface-hover);
+      color: var(--fg-primary);
+    }
+
+    /* Input */
+    .input {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--fg-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+    }
+
+    .input::placeholder {
+      color: var(--fg-tertiary);
+    }
+
+    .input:hover {
+      border-color: var(--border-strong);
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .card-elevated {
+      background: var(--bg-elevated);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 4px;
+    }
+
+    .badge-primary {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .badge-success {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .badge-warning {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    .badge-error {
+      background: var(--error-soft);
+      color: var(--error);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * LAYOUT - DASHBOARD
+     * ═══════════════════════════════════════════════════════════════ */
+    .dashboard {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-collapsed);
+      height: 100vh;
+      position: fixed;
+      left: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      transition: width 0.3s ease;
+      z-index: 100;
+    }
+
+    .sidebar:hover {
+      width: var(--sidebar-expanded);
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      color: var(--fg-tertiary);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .sidebar-item:hover {
+      background: var(--bg-surface-hover);
+      color: var(--fg-primary);
+    }
+
+    .sidebar-item.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .sidebar-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-label {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .sidebar:hover .sidebar-label {
+      opacity: 1;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      margin-left: var(--sidebar-collapsed);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      height: var(--header-height);
+      padding: 0 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: hsla(220, 18%, 8%, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-logo {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--fg-primary);
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* Content */
+    .content {
+      flex: 1;
+      padding: 32px 48px;
+      background:
+        radial-gradient(ellipse at 20% 0%, hsla(210, 100%, 55%, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 100%, hsla(200, 90%, 48%, 0.06) 0%, transparent 50%),
+        var(--bg-canvas);
+    }
+
+    /* Page Header */
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .page-header-cta {
+      margin-bottom: 0;
+      transform: translateY(8px);
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--fg-primary);
+    }
+
+    .page-description {
+      font-size: 14px;
+      color: var(--fg-secondary);
+      margin-top: 4px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * PAGES
+     * ═══════════════════════════════════════════════════════════════ */
+
+    /* Page tabs */
+    .page-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 12px;
+    }
+
+    .page-tab {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--fg-tertiary);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .page-tab:hover {
+      color: var(--fg-primary);
+      background: var(--bg-surface-hover);
+    }
+
+    .page-tab.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* Search bar */
+    .search-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 400px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: var(--fg-tertiary);
+    }
+
+    .search-input {
+      padding-left: 40px;
+    }
+
+    /* Table */
+    .table-wrapper {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--fg-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--bg-canvas-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .table td {
+      padding: 16px;
+      font-size: 14px;
+      color: var(--fg-primary);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table tr:hover td {
+      background: var(--bg-surface-hover);
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .pagination-info {
+      font-size: 14px;
+      color: var(--fg-tertiary);
+    }
+
+    .pagination-controls {
+      display: flex;
+      gap: 4px;
+    }
+
+    .pagination-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--fg-secondary);
+      background: transparent;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pagination-btn:hover {
+      background: var(--bg-surface-hover);
+      color: var(--fg-primary);
+    }
+
+    .pagination-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * LOGIN PAGE
+     * ═══════════════════════════════════════════════════════════════ */
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse at 50% 0%, hsla(210, 100%, 55%, 0.15) 0%, transparent 50%),
+        var(--bg-canvas);
+    }
+
+    /* Particle canvas (aligned with web login particle params) */
+    .particle-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 400px;
+      padding: 32px;
+      background: hsla(220, 16%, 12%, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-glow {
+      position: absolute;
+      inset: -40px;
+      background: var(--accent-soft);
+      filter: blur(60px);
+      z-index: -1;
+      opacity: 0.5;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 14px;
+      color: var(--fg-secondary);
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--fg-secondary);
+    }
+
+    .login-footer {
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .login-link {
+      font-size: 14px;
+      color: var(--fg-tertiary);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .login-link:hover {
+      color: var(--fg-primary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * CREATE REPORT PAGE
+     * ═══════════════════════════════════════════════════════════════ */
+    .form-page {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .form-card {
+      margin-bottom: 24px;
+    }
+
+    .form-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .form-card-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+    }
+
+    .form-card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--fg-primary);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--fg-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      resize: vertical;
+      transition: all 0.2s ease;
+    }
+
+    .textarea:hover {
+      border-color: var(--border-strong);
+    }
+
+    .textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .select {
+      width: 100%;
+      height: 40px;
+      padding: 0 32px 0 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--fg-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a7f8c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+    }
+
+    .select:hover {
+      border-color: var(--border-strong);
+    }
+
+    .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    /* File dropzone */
+    .dropzone {
+      border: 2px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .dropzone:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .dropzone-icon {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 12px;
+      color: var(--fg-tertiary);
+    }
+
+    .dropzone-text {
+      font-size: 14px;
+      color: var(--fg-secondary);
+      margin-bottom: 4px;
+    }
+
+    .dropzone-hint {
+      font-size: 12px;
+      color: var(--fg-tertiary);
+    }
+
+    /* Checkbox */
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      appearance: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .checkbox:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .checkbox-label {
+      font-size: 14px;
+      color: var(--fg-secondary);
+      line-height: 1.5;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    /* Back link */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--fg-secondary);
+      text-decoration: none;
+      margin-bottom: 24px;
+      transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+      color: var(--fg-primary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+     * NAVIGATION FOR PREVIEW
+     * ═══════════════════════════════════════════════════════════════ */
+    .preview-nav {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+    }
+
+    .preview-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--fg-secondary);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .preview-btn:hover {
+      background: var(--bg-surface-hover);
+      color: var(--fg-primary);
+    }
+
+    .preview-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* Hidden pages */
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    .animate-delay-1 { animation-delay: 50ms; }
+    .animate-delay-2 { animation-delay: 100ms; }
+    .animate-delay-3 { animation-delay: 150ms; }
+    .animate-delay-4 { animation-delay: 200ms; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       LOGIN PAGE
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="login-page" class="page active">
+    <div class="login-page">
+      <div class="login-bg"></div>
+
+      <canvas id="login-particle-canvas" class="particle-canvas" aria-hidden="true"></canvas>
+
+      <div class="login-card">
+        <div class="login-glow"></div>
+
+        <div class="login-header">
+          <h1 class="login-title text-gradient">THE FUTURE IS NOW</h1>
+        </div>
+
+        <form class="login-form">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="input" placeholder="you@example.com">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" class="input" placeholder="••••••••">
+          </div>
+
+          <button type="button" class="btn btn-accent" onclick="showPage('dashboard')" style="width: 100%;">
+            Sign In
+          </button>
+        </form>
+
+        <div class="login-footer">
+          <a class="login-link">Forgot password?</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       DASHBOARD - LIST PAGE
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="dashboard-page" class="page">
+    <div class="dashboard">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <a href="#" class="sidebar-item active">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span class="sidebar-label">Reports</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <span class="sidebar-label">Report Review</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span class="sidebar-label">Users</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span class="sidebar-label">Regions</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <span class="sidebar-label">Analyst Info</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+            <span class="sidebar-label">Coverage</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="sidebar-label">Sectors</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <path d="M14 2v6h6"/>
+            </svg>
+            <span class="sidebar-label">Templates</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main content -->
+      <main class="main">
+        <header class="header">
+          <span class="header-logo">Neolyst</span>
+          <div class="header-user">
+            <span style="font-size: 14px; color: var(--fg-secondary);">John Doe</span>
+            <div class="avatar">JD</div>
+          </div>
+        </header>
+
+        <div class="content">
+          <!-- Page Header -->
+          <div class="page-header animate-in">
+            <div>
+              <h1 class="page-title">Reports</h1>
+            </div>
+            <button class="btn btn-accent glow-hover page-header-cta" onclick="showPage('create')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Add Report
+            </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="search-bar animate-in animate-delay-1">
+            <div class="search-input-wrapper">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input type="text" class="input search-input" placeholder="Search reports...">
+            </div>
+            <button class="btn btn-secondary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+              Filters
+            </button>
+          </div>
+
+          <!-- Table -->
+          <div class="table-wrapper animate-in animate-delay-2">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Company</th>
+                  <th>Report Type</th>
+                  <th>Region</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Tencent Holdings</td>
+                  <td>Initiation</td>
+                  <td>China</td>
+                  <td><span class="badge badge-warning">Draft</span></td>
+                  <td>2024-02-15</td>
+                  <td><button class="btn btn-ghost" style="padding: 4px 8px; height: auto;">Edit</button></td>
+                </tr>
+                <tr>
+                  <td>Alibaba Group</td>
+                  <td>Quarterly Update</td>
+                  <td>China</td>
+                  <td><span class="badge badge-primary">Pending Review</span></td>
+                  <td>2024-02-14</td>
+                  <td><button class="btn btn-ghost" style="padding: 4px 8px; height: auto;">Edit</button></td>
+                </tr>
+                <tr>
+                  <td>Samsung Electronics</td>
+                  <td>Initiation</td>
+                  <td>Korea</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                  <td>2024-02-13</td>
+                  <td><button class="btn btn-ghost" style="padding: 4px 8px; height: auto;">View</button></td>
+                </tr>
+                <tr>
+                  <td>TSMC</td>
+                  <td>Deep Dive</td>
+                  <td>Taiwan</td>
+                  <td><span class="badge badge-primary">Pending Review</span></td>
+                  <td>2024-02-12</td>
+                  <td><button class="btn btn-ghost" style="padding: 4px 8px; height: auto;">Edit</button></td>
+                </tr>
+                <tr>
+                  <td>Sony Group</td>
+                  <td>Quarterly Update</td>
+                  <td>Japan</td>
+                  <td><span class="badge badge-error">Rejected</span></td>
+                  <td>2024-02-11</td>
+                  <td><button class="btn btn-ghost" style="padding: 4px 8px; height: auto;">Edit</button></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="pagination">
+              <span class="pagination-info">Showing 1-5 of 42 reports</span>
+              <div class="pagination-controls">
+                <button class="pagination-btn">‹</button>
+                <button class="pagination-btn active">1</button>
+                <button class="pagination-btn">2</button>
+                <button class="pagination-btn">3</button>
+                <button class="pagination-btn">...</button>
+                <button class="pagination-btn">9</button>
+                <button class="pagination-btn">›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       CREATE REPORT PAGE
+       ═══════════════════════════════════════════════════════════════ -->
+  <div id="create-page" class="page">
+    <div class="dashboard">
+      <!-- Sidebar (same as dashboard) -->
+      <aside class="sidebar">
+        <nav class="sidebar-nav">
+          <a href="#" class="sidebar-item active" onclick="showPage('dashboard'); return false;">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            <span class="sidebar-label">Reports</span>
+          </a>
+          <a href="#" class="sidebar-item">
+            <svg class="sidebar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <span class="sidebar-label">Report Review</span>
+          </a>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="header">
+          <span class="header-logo">Neolyst</span>
+          <div class="header-user">
+            <span style="font-size: 14px; color: var(--fg-secondary);">John Doe</span>
+            <div class="avatar">JD</div>
+          </div>
+        </header>
+
+        <div class="content">
+          <div class="form-page">
+            <a href="#" class="back-link" onclick="showPage('dashboard'); return false;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+              Back to Reports
+            </a>
+
+            <div class="page-header animate-in">
+              <div>
+                <h1 class="page-title">Create New Report</h1>
+              </div>
+            </div>
+
+            <form>
+              <!-- Basic Information -->
+              <div class="card form-card animate-in animate-delay-1">
+                <div class="form-card-header">
+                  <svg class="form-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <span class="form-card-title">Basic Information</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div class="form-group">
+                    <label class="form-label">Company *</label>
+                    <select class="select">
+                      <option>Select or search company...</option>
+                      <option>Tencent Holdings</option>
+                      <option>Alibaba Group</option>
+                      <option>Samsung Electronics</option>
+                    </select>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Report Type *</label>
+                      <select class="select">
+                        <option>Select...</option>
+                        <option>Initiation</option>
+                        <option>Quarterly Update</option>
+                        <option>Deep Dive</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Region *</label>
+                      <select class="select">
+                        <option>Select...</option>
+                        <option>China</option>
+                        <option>Korea</option>
+                        <option>Japan</option>
+                        <option>Taiwan</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Sector *</label>
+                      <select class="select">
+                        <option>Select...</option>
+                        <option>Technology</option>
+                        <option>Healthcare</option>
+                        <option>Financials</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Investment Thesis *</label>
+                    <textarea class="textarea" placeholder="Enter your investment thesis..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Files -->
+              <div class="card form-card animate-in animate-delay-2">
+                <div class="form-card-header">
+                  <svg class="form-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span class="form-card-title">Files</span>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div class="form-group">
+                    <label class="form-label">Report Document (Word) *</label>
+                    <div class="dropzone">
+                      <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="12" y1="18" x2="12" y2="12"/>
+                        <line x1="9" y1="15" x2="15" y2="15"/>
+                      </svg>
+                      <div class="dropzone-text">Drag & drop your Word document here</div>
+                      <div class="dropzone-hint">or click to browse • Supports: .docx, .doc</div>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">Model File (Excel)</label>
+                    <div class="dropzone">
+                      <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                      </svg>
+                      <div class="dropzone-text">Drag & drop your Excel model here</div>
+                      <div class="dropzone-hint">or click to browse • Supports: .xlsx, .xls</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Certification -->
+              <div class="card form-card animate-in animate-delay-3">
+                <div class="form-card-header">
+                  <svg class="form-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  <span class="form-card-title">Certification</span>
+                </div>
+
+                <div class="checkbox-group">
+                  <label class="checkbox-item">
+                    <input type="checkbox" class="checkbox">
+                    <span class="checkbox-label">I certify that the information provided is accurate and complete.</span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" class="checkbox">
+                    <span class="checkbox-label">The report complies with all applicable regulations.</span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" class="checkbox">
+                    <span class="checkbox-label">I have reviewed all data for accuracy.</span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" class="checkbox">
+                    <span class="checkbox-label">The analysis is based on verified sources.</span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" class="checkbox">
+                    <span class="checkbox-label">No confidential information is improperly disclosed.</span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" class="checkbox">
+                    <span class="checkbox-label">The report follows our editorial guidelines.</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="form-actions animate-in animate-delay-4">
+                <button type="button" class="btn btn-secondary" onclick="showPage('dashboard')">Cancel</button>
+                <button type="button" class="btn btn-accent glow-hover">Create Report</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Preview Navigation -->
+  <nav class="preview-nav">
+    <button class="preview-btn active" onclick="showPage('login')">Login</button>
+    <button class="preview-btn" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="preview-btn" onclick="showPage('create')">Create Report</button>
+  </nav>
+
+  <script>
+    function initLoginParticles() {
+      const canvas = document.getElementById('login-particle-canvas');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      let raf = 0;
+      let width = 0;
+      let height = 0;
+      let dpr = 1;
+
+      const particleCount = 120;
+      const linkDistance = 140;
+      const speedFactor = 2;
+      const pulseSpeed = 0.15;
+      const particles = [];
+
+      function rand(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function resize() {
+        dpr = Math.max(1, window.devicePixelRatio || 1);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function initParticles() {
+        particles.length = 0;
+        for (let i = 0; i < particleCount; i += 1) {
+          particles.push({
+            x: rand(0, width),
+            y: rand(0, height),
+            vx: rand(-0.3, 0.3) * speedFactor,
+            vy: rand(-0.3, 0.3) * speedFactor,
+            r: rand(1, 3),
+            hue: rand(200, 260),
+            baseAlpha: rand(0.3, 0.7),
+            phase: rand(0, Math.PI * 2),
+          });
+        }
+      }
+
+      function tick(tMs) {
+        const t = tMs * 0.001;
+        ctx.clearRect(0, 0, width, height);
+
+        for (const p of particles) {
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.x < 0) {
+            p.x = 0;
+            p.vx *= -1;
+          } else if (p.x > width) {
+            p.x = width;
+            p.vx *= -1;
+          }
+
+          if (p.y < 0) {
+            p.y = 0;
+            p.vy *= -1;
+          } else if (p.y > height) {
+            p.y = height;
+            p.vy *= -1;
+          }
+        }
+
+        for (let i = 0; i < particles.length; i += 1) {
+          const a = particles[i];
+          for (let j = i + 1; j < particles.length; j += 1) {
+            const b = particles[j];
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist >= linkDistance) continue;
+
+            const alpha = (1 - dist / linkDistance) * 0.35;
+            const hue = (a.hue + b.hue) / 2;
+            ctx.strokeStyle = `hsla(${hue}, 100%, 70%, ${alpha})`;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+
+        for (const p of particles) {
+          const pulse = (Math.sin(t * (Math.PI * 2) * pulseSpeed + p.phase) + 1) / 2;
+          const alpha = p.baseAlpha * (0.6 + pulse * 0.4);
+          ctx.fillStyle = `hsla(${p.hue}, 100%, 70%, ${alpha})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        raf = window.requestAnimationFrame(tick);
+      }
+
+      resize();
+      initParticles();
+      raf = window.requestAnimationFrame(tick);
+
+      window.addEventListener('resize', () => {
+        resize();
+        initParticles();
+      });
+    }
+
+    initLoginParticles();
+
+    function showPage(page) {
+      // Hide all pages
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+      // Show selected page
+      document.getElementById(page + '-page').classList.add('active');
+
+      // Update nav buttons
+      document.querySelectorAll('.preview-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/features/*/repo/*"],
+                "message": "禁止从 app 或 components 直接导入 repo。请通过 features/*/index.ts 或 actions.ts 导入。"
+              },
+              {
+                "group": ["**/lib/supabase/admin"],
+                "message": "禁止在 app 或 components 中导入 admin client。admin client 仅限 features/*/repo/* 使用。"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "ignorePatterns": [".next/*", "node_modules/*", ".pnpm-store/*"]
+}

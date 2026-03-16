@@ -1,0 +1,38 @@
+.RichTextEditor .ProseMirror {
+  font-family: '楷体GB_2312', 'KaiTi', '楷体', 'STKaiti', Calibri, Cambria, 'Times New Roman', serif;
+}
+
+.RichTextEditor .ProseMirror p,
+.RichTextEditor .ProseMirror li {
+  font-family: inherit;
+  text-align: justify;
+}
+
+.RichTextEditor .ProseMirror h1,
+.RichTextEditor .ProseMirror h2,
+.RichTextEditor .ProseMirror h3 {
+  font-family: inherit;
+}
+
+.RichTextEditor .ProseMirror strong,
+.RichTextEditor .ProseMirror b {
+  font-family: inherit;
+}
+
+.RichTextEditor .ProseMirror em,
+.RichTextEditor .ProseMirror i {
+  font-family: inherit;
+}
+
+.RichTextEditor .ProseMirror ul,
+.RichTextEditor .ProseMirror ol {
+  font-family: inherit;
+}
+
+.RichTextEditor .ProseMirror code {
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.RichTextEditor .ProseMirror:focus {
+  outline: none;
+}

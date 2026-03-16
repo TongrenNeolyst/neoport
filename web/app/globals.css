@@ -1,0 +1,203 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+ * NEOLYST DESIGN TOKENS
+ * Theme: Refined Technical Luxury
+ * ═══════════════════════════════════════════════════════════════ */
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Default theme - Light */
+  --bg-canvas: hsl(0, 0%, 100%);
+  --bg-canvas-subtle: hsl(220, 20%, 97%);
+  --bg-surface: hsl(220, 20%, 95%);
+  --bg-surface-hover: hsl(220, 20%, 90%);
+  --bg-surface-active: hsl(220, 20%, 85%);
+  --bg-elevated: hsl(220, 20%, 98%);
+  --bg-elevated-hover: hsl(220, 20%, 95%);
+
+  --fg-primary: hsl(220, 10%, 10%);
+  --fg-secondary: hsl(220, 10%, 40%);
+  --fg-tertiary: hsl(220, 10%, 55%);
+  --fg-disabled: hsl(220, 10%, 70%);
+
+  --accent: hsl(210, 100%, 50%);
+  --accent-soft: hsla(210, 100%, 50%, 0.1);
+  --accent-glow: hsla(210, 100%, 50%, 0.3);
+
+  --success: hsl(165, 70%, 40%);
+  --success-soft: hsla(165, 70%, 40%, 0.1);
+  --warning: hsl(38, 92%, 50%);
+  --warning-soft: hsla(38, 92%, 50%, 0.1);
+  --error: hsl(0, 72%, 50%);
+  --error-soft: hsla(0, 72%, 50%, 0.1);
+
+  --border-subtle: hsl(220, 20%, 85%);
+  --border-default: hsl(220, 20%, 80%);
+  --border-strong: hsl(220, 20%, 70%);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 2px 4px hsla(220, 30%, 90%, 0.5);
+  --shadow-md: 0 4px 12px hsla(220, 30%, 90%, 0.6);
+  --shadow-lg: 0 8px 24px hsla(220, 30%, 90%, 0.7);
+  --glow-md: 0 0 20px var(--accent-glow);
+
+  --sidebar-collapsed: 64px;
+  --sidebar-expanded: 256px;
+  --header-height: 64px;
+
+  /* Background gradient */
+  --bg-gradient: linear-gradient(to bottom, hsl(0, 0%, 98%) 0%, hsl(0, 0%, 96%) 50%, hsl(220, 20%, 94%) 100%);
+
+  color-scheme: light;
+}
+
+.dark {
+  /* Dark theme */
+  --bg-canvas: hsl(220, 20%, 4%);
+  --bg-canvas-subtle: hsl(220, 20%, 6%);
+  --bg-surface: hsl(220, 18%, 8%);
+  --bg-surface-hover: hsl(220, 18%, 11%);
+  --bg-surface-active: hsl(220, 18%, 14%);
+  --bg-elevated: hsl(220, 16%, 12%);
+  --bg-elevated-hover: hsl(220, 16%, 15%);
+
+  --fg-primary: hsl(0, 0%, 98%);
+  --fg-secondary: hsl(220, 10%, 72%);
+  --fg-tertiary: hsl(220, 8%, 52%);
+  --fg-disabled: hsl(220, 6%, 38%);
+
+  --accent: hsl(210, 100%, 55%);
+  --accent-soft: hsla(210, 100%, 55%, 0.15);
+  --accent-glow: hsla(210, 100%, 60%, 0.4);
+
+  --success: hsl(165, 70%, 45%);
+  --success-soft: hsla(165, 70%, 45%, 0.15);
+  --warning: hsl(38, 92%, 50%);
+  --warning-soft: hsla(38, 92%, 50%, 0.15);
+  --error: hsl(0, 72%, 55%);
+  --error-soft: hsla(0, 72%, 55%, 0.15);
+
+  --border-subtle: hsl(220, 12%, 18%);
+  --border-default: hsl(220, 12%, 22%);
+  --border-strong: hsl(220, 12%, 28%);
+
+  --shadow-sm: 0 2px 4px hsla(220, 30%, 2%, 0.4);
+  --shadow-md: 0 4px 12px hsla(220, 30%, 2%, 0.5);
+  --shadow-lg: 0 8px 24px hsla(220, 30%, 2%, 0.6);
+  --glow-md: 0 0 20px var(--accent-glow);
+
+  /* Dark background gradient */
+  --bg-gradient: linear-gradient(to bottom, hsl(220, 20%, 6%) 0%, hsl(220, 20%, 4%) 50%, hsl(220, 20%, 3%) 100%);
+
+  color-scheme: dark;
+}
+
+/* Base reset */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-gradient);
+  color: var(--fg-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background: hsla(210, 100%, 50%, 0.3);
+  color: var(--fg-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Keep autofill consistent with dark inputs (avoid yellow background). */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--fg-primary);
+  box-shadow: 0 0 0px 1000px var(--bg-surface) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Rich Text Editor - Font Styles for Investment Thesis */
+.ProseMirror {
+  font-family: KaiTi, 'STKaiti', '楷体', '楷体GB_2312', Calibri, sans-serif !important;
+}
+
+.ProseMirror p,
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror strong,
+.ProseMirror b,
+.ProseMirror em,
+.ProseMirror i,
+.ProseMirror li,
+.ProseMirror ul,
+.ProseMirror ol,
+.ProseMirror code,
+.ProseMirror span {
+  font-family: KaiTi, 'STKaiti', '楷体', '楷体GB_2312', Calibri, sans-serif !important;
+}
+
+/* Utility classes for design tokens */
+@utility text-gradient {
+  background: linear-gradient(135deg, var(--accent), hsl(200, 90%, 48%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility glass {
+  background: hsla(220, 16%, 12%, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Sidebar collapsed/expanded */
+@utility sidebar-collapsed {
+  width: var(--sidebar-collapsed);
+}
+
+@utility sidebar-expanded {
+  width: var(--sidebar-expanded);
+}
+
+@utility header-height {
+  height: var(--header-height);
+}

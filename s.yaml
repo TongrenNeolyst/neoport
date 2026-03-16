@@ -1,0 +1,66 @@
+edition: 1.0.0
+name: next-app
+access: "default"
+
+vars:
+  region: "cn-hongkong"
+  service:
+    name: "nextjs-service"
+    description: 'Next.js Service'
+
+services:
+  framework:
+    component: fc
+    actions:
+      pre-deploy:
+        - run: rm -rf web/node_modules web/package-lock.json
+        - run: |
+            export NVM_DIR="/usr/local"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm install 20
+            nvm use 20
+            cd web
+            npm install
+        - run: |
+            export NVM_DIR="/usr/local"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 20
+            cd web
+            npm run build
+    props:
+      region: ${vars.region}
+      service: ${vars.service}
+      function:
+        name: "next-app-function"
+        description: 'Next.js Function'
+        codeUri: './web'  # 直接指向 web 目录
+        runtime: custom.debian10
+        timeout: 60
+        caPort: 3000
+        memorySize: 512
+        layers:
+          - acs:fc:${vars.region}:official:layers/Nodejs20/versions/2
+        environmentVariables:
+          PATH: /opt/nodejs20/bin:/usr/local/bin:/usr/bin:/bin
+          NODE_ENV: production
+          PORT: 3000
+          NEXT_PUBLIC_SUPABASE_URL: ${env(NEXT_PUBLIC_SUPABASE_URL)}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${env(NEXT_PUBLIC_SUPABASE_ANON_KEY)}
+        customRuntimeConfig:
+          command:
+            - node
+            - node_modules/next/dist/bin/next
+            - start
+      triggers:
+        - name: httpTrigger
+          type: http
+          config:
+            authType: anonymous
+            methods:
+              - GET
+              - POST
+      customDomains:
+        - domainName: auto
+          protocol: HTTP
+          routeConfigs:
+            - path: '/*'
