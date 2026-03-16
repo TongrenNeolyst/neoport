@@ -234,7 +234,7 @@ export async function getReportForEmail(reportId: string): Promise<ReportForEmai
   return {
     ...data,
     analysts,
-    latest_version: versions.length > 0 ? versions[versions.length - 1] : null,
+    latest_version: versions.length > 0 ? versions[versions.length - 1] : undefined,
   };
 }
 
