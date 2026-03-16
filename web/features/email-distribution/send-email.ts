@@ -226,9 +226,14 @@ export async function getReportForEmail(reportId: string): Promise<ReportForEmai
 
   versions.sort((a, b) => a.word_file_path.localeCompare(b.word_file_path));
 
+  // Transform analysts data from Supabase nested structure to flat structure
+  const analysts = (data.analysts || []).map((item: { analyst?: { full_name: string; chinese_name: string | null }[] }) => ({
+    analyst: item.analyst ? item.analyst[0] : undefined,
+  }));
+
   return {
     ...data,
-    analysts: data.analysts || [],
+    analysts,
     latest_version: versions.length > 0 ? versions[versions.length - 1] : null,
   };
 }
