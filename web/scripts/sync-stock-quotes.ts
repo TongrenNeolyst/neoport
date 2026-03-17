@@ -3,11 +3,11 @@ import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey", "ripHistorical"] });
 
-type MarketCode = "SH" | "SZ" | "HK" | "US";
+type MarketCode = "SH" | "SZ" | "HK" | "US" | "PA";
 
 // Extract clean ticker - remove "US", "HK", etc suffix
 function extractCleanTicker(ticker: string, mkt_code: MarketCode): string {
-  const cleaned = ticker.trim().replace(/\s+(US|HK|SH|SZ)$/i, "").trim();
+  const cleaned = ticker.trim().replace(/\s+(US|HK|SH|SZ|PA)$/i, "").trim();
 
   // For HK stocks, pad to 4 digits
   if (mkt_code === "HK") {
@@ -21,6 +21,7 @@ function inferMarketCode(ticker: string, countryOfDomicile: string): MarketCode 
   const tickerTrimmed = extractCleanTicker(ticker, "US").toUpperCase();
 
   if (countryOfDomicile === "Hong Kong") return "HK";
+  if (countryOfDomicile === "France") return "PA";
   if (countryOfDomicile === "China") {
     if (/^\d{6}$/.test(tickerTrimmed)) {
       return tickerTrimmed.startsWith("6") ? "SH" : "SZ";
@@ -36,6 +37,7 @@ function getTickerSuffix(mkt_code: MarketCode): string {
     case "SH": return ".SS";
     case "SZ": return ".SZ";
     case "HK": return ".HK";
+    case "PA": return ".PA";
     default: return "";
   }
 }
