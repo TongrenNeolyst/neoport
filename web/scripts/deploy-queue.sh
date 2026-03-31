@@ -7,8 +7,8 @@ set -euo pipefail
 # ============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE_NAME="neolyst-queue"
-CONTAINER_NAME="neolyst-queue"
+IMAGE_NAME="neoport-queue"
+CONTAINER_NAME="neoport-queue"
 ENV_FILE="$SCRIPT_DIR/.env"
 
 # 检查 .env 文件是否存在
