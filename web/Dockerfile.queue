@@ -1,0 +1,21 @@
+FROM node:22-alpine
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
+
+WORKDIR /app
+
+# Copy only package files first for caching
+COPY package.json pnpm-lock.yaml ./
+
+# Install dependencies (onlyBuiltDependencies included)
+RUN pnpm install --frozen-lockfile --prod=false
+
+# Copy scripts and source
+COPY . .
+
+# Build is not needed for standalone tsx script
+# RUN pnpm build
+
+# Default command
+CMD ["npx", "tsx", "--env-file=.env", "scripts/process-auto-distribution-queue-standalone.ts"]
