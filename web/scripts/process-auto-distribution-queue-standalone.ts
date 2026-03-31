@@ -290,7 +290,7 @@ async function processQueueItem(queueId: string, reportId: string) {
 
     const attachments = await fetchAttachments(reportId);
 
-    let firstError: string | null = null;
+    let firstError: string | undefined = undefined;
     let allSucceeded = true;
 
     for (const recipient of recipients) {
@@ -331,7 +331,9 @@ async function processQueueItem(queueId: string, reportId: string) {
   }
 }
 
-async function main() {
+const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function pollQueue() {
   console.log(`[${new Date().toISOString()}] Starting auto distribution queue processor...`);
 
   const { data: queueItems, error: queueError } = await supabase
@@ -347,7 +349,7 @@ async function main() {
   }
 
   if (!queueItems || queueItems.length === 0) {
-    console.log("[process-queue] No waiting items in queue. Exiting.");
+    console.log("[process-queue] No waiting items in queue.");
     return;
   }
 
@@ -356,8 +358,17 @@ async function main() {
   for (const item of queueItems) {
     await processQueueItem(item.id, item.report_id);
   }
+}
 
-  console.log("[process-queue] Done.");
+async function main() {
+  console.log(`[${new Date().toISOString()}] Auto distribution queue processor started (polling every 5 minutes).`);
+
+  // 启动时立即执行一次
+  await pollQueue();
+
+  setInterval(async () => {
+    await pollQueue();
+  }, POLL_INTERVAL_MS);
 }
 
 main().catch((err) => {
