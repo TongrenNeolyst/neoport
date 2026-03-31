@@ -13,7 +13,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceRoleKey) {
@@ -44,9 +44,15 @@ const DEFAULT_USERS: UserConfig[] = [
   },
   {
     email: "sa@neolyst.com",
-    password: "Analyst123",
+    password: "Admin123",
     role: "sa",
-    fullName: "Test Senior Analyst",
+    fullName: "SA",
+  },
+  {
+    email: "analyst@neolyst.com",
+    password: "Admin123",
+    role: "analyst",
+    fullName: "Test Analyst",
   },
 ];
 

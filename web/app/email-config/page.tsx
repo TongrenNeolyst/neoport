@@ -42,7 +42,7 @@ export default function EmailConfigPage() {
           setSmtpFrom(config.smtp_from);
           setIsEnabled(config.is_enabled);
         }
-      } catch (e) {
+      } catch {
         setError("Failed to load config");
       } finally {
         setLoading(false);
@@ -75,7 +75,7 @@ export default function EmailConfigPage() {
 
       setSuccess("Configuration saved successfully");
       setSmtpPass("");
-    } catch (e) {
+    } catch {
       setError("Failed to save");
     } finally {
       setSaving(false);

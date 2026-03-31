@@ -48,17 +48,17 @@ async function retryFailedDistributions(reportId?: string) {
       .eq("report_id", id)
       .eq("status", "failed");
 
-    // Reset queue status to pending
+    // Reset queue status to waiting
     await supabase
       .from("report_distribution_queue")
-      .update({ status: "pending", error_message: null })
+      .update({ status: "waiting", error_message: null })
       .eq("report_id", id)
-      .eq("status", "completed");
+      .eq("status", "failed");
 
     console.log(`Reset queue for report: ${id}`);
   }
 
-  console.log("Done. Run process-distribution-queue.ts to send emails.");
+  console.log("Done. Run process-auto-distribution-queue.ts to send emails.");
 }
 
 const reportId = process.argv[2];

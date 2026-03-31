@@ -38,7 +38,7 @@ export default function SubscriptionsPage() {
           return;
         }
         setSubscriptions(result.data);
-      } catch (e) {
+      } catch {
         setError("Failed to load subscriptions");
       } finally {
         setLoading(false);
@@ -70,7 +70,7 @@ export default function SubscriptionsPage() {
       if (listResult.ok) {
         setSubscriptions(listResult.data);
       }
-    } catch (e) {
+    } catch {
       setError("Failed to add subscription");
     } finally {
       setAdding(false);
@@ -92,7 +92,7 @@ export default function SubscriptionsPage() {
 
       setSuccess("Subscription deleted");
       setSubscriptions(subscriptions.filter((s) => s.id !== id));
-    } catch (e) {
+    } catch {
       setError("Failed to delete subscription");
     }
   };

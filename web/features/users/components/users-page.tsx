@@ -25,7 +25,6 @@ export async function UsersPage({
 
   const result = await listUsersAction({ page, query: q || null });
 
-  // If error, show empty state (error handling could be improved)
   const data = result.ok
     ? result.data
     : { items: [], total: 0, page: 1, totalPages: 1 };
@@ -40,4 +39,3 @@ export async function UsersPage({
     />
   );
 }
-

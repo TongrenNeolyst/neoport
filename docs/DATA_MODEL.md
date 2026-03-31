@@ -30,6 +30,10 @@
 | 报告内容版本 | `report_version` | 已实现（change 已归档） |
 | 报告作者关系 | `report_analyst` | 已实现（change 已归档） |
 | 报告状态历史 | `report_status_log` | 已实现（change 已归档） |
+| 外部报告 | `reports` | 实现中（change: add-reports-entity） |
+| 外部报告附件 | `report_attachments` | 实现中（change: add-reports-entity） |
+| 外部报告分析师关联 | `report_analyst` | 实现中（change: add-reports-entity） |
+| 外部报告联系人关联 | `report_contact` | 实现中（change: add-reports-entity） |
 
 ## 3. 表结构口径
 
@@ -208,6 +212,67 @@
 - append-only（禁止 update/delete）
 - 记录完整状态流转链
 
+### 3.11 `reports`（实现中）
+
+关键字段：
+- `id` (uuid, PK)
+- `external_id` (text, unique, not null) — 外部系统唯一标识
+- `title` (text, not null) — 报告标题
+- `report_type` (text, not null) — 报告类型（如 sector/company）
+- `ticker` (text, nullable) — 公司股票代码
+- `rating` (text, nullable) — 评级
+- `target_price` (numeric, nullable) — 目标价（CHECK > 0）
+- `sector` (text, nullable) — 行业
+- `region` (text, nullable) — 地区
+- `report_language` (text, nullable) — 报告语言（CHECK IN ('zh', 'en')）
+- `investment_thesis` (text, nullable) — 投资摘要
+- `analyst` (text, nullable) — 报告分析师名字（关联邮箱通过 report_analyst 表维护）
+- `contact_person` (text, nullable) — 报告联系人名字（关联邮箱通过 report_contact 表维护）
+- `published_at` (timestamptz, not null) — 报告发布时间
+- `created_at` / `updated_at` (timestamptz)
+
+关键约束：
+- `external_id` 唯一，防止重复推送
+- `target_price > 0`
+- `report_language` 枚举限制为 `zh` / `en`
+- 不允许物理删除（无 DELETE）
+
+### 3.12 `report_attachments`（实现中）
+
+关键字段：
+- `id` (uuid, PK)
+- `report_id` (uuid, FK -> `reports.id`, on delete cascade)
+- `original_name` (text, not null) — 原始文件名
+- `file_path` (text, not null) — Storage 路径
+- `file_size` (bigint, not null) — 文件大小（字节）
+- `mime_type` (text, not null) — MIME 类型
+- `created_at` (timestamptz)
+
+关键约束：
+- report 删除时附件一并删除（on delete cascade）
+
+### 3.13 `report_analyst`（实现中）
+
+关键字段：
+- `id` (uuid, PK)
+- `report_id` (uuid, FK -> `reports.id`, on delete cascade)
+- `analyst_email` (citext, not null)
+- `created_at` (timestamptz)
+
+关键约束：
+- `(report_id, analyst_email)` 唯一
+
+### 3.14 `report_contact`（实现中）
+
+关键字段：
+- `id` (uuid, PK)
+- `report_id` (uuid, FK -> `reports.id`, on delete cascade)
+- `contact_email` (citext, not null)
+- `created_at` (timestamptz)
+
+关键约束：
+- `(report_id, contact_email)` 唯一
+
 ## 4. 状态机口径（report）
 
 允许流转：
@@ -235,6 +300,10 @@
 | `report_version` | R + INSERT | R（仅 submitted/published/rejected） | R + INSERT（仅 owner） |
 | `report_analyst` | 全量 R/W | R（仅 submitted/published/rejected） | R/W（仅 owner） |
 | `report_status_log` | R + INSERT | R + INSERT（审批与退回） | R + INSERT（仅 owner 执行 submit） |
+| `reports` | 全量 R/W | R（全量） | R（全量） |
+| `report_attachments` | 全量 R/W | R（全量） | R（全量） |
+| `report_analyst` | 全量 R/W | R（全量） | R（全量） |
+| `report_contact` | 全量 R/W | R（全量） | R（全量） |
 
 注：`storage.objects` 不在本表内，见下一节。
 
@@ -256,6 +325,12 @@
 ### 6.3 报告文件权限
 - 读取：owner / Admin / SA（SA 仅 `submitted|published|rejected` 范围）
 - 写入（上传/替换/删除）：owner / Admin
+
+### 6.4 外部报告附件
+- bucket：`external-reports`
+- 路径：`external-reports/{report_id}/{file_name}`
+- 读取：所有已认证用户（签名 URL）
+- 写入（上传/替换/删除）：服务端 API（service role）
 
 ## 7. 与迁移 SQL 的同步规则
 

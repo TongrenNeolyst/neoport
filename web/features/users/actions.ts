@@ -17,7 +17,6 @@ import {
   banUser,
   createUser as createUserRepo,
   deleteUser,
-  inviteUser as inviteUserRepo,
   listUsers as listUsersRepo,
   resetUserPassword as resetUserPasswordRepo,
   setUserRole as setUserRoleRepo,
@@ -33,7 +32,6 @@ async function requireAdminOrRedirect403() {
   }
 }
 
-// List users action
 export async function listUsersAction(input: {
   page?: number;
   query?: string | null;
@@ -58,7 +56,6 @@ export async function listUsersAction(input: {
   }
 }
 
-// Invite user action
 export async function inviteUserAction(
   input: unknown,
 ): Promise<Result<{ id: string }>> {
@@ -69,44 +66,21 @@ export async function inviteUserAction(
     return err(parsed.error.issues[0]?.message ?? "Invalid input.");
   }
 
-  const { email, fullName, role, requireEmailConfirmation } = parsed.data;
+  const { email, fullName, role } = parsed.data;
 
   try {
-    // If email confirmation is required, use invite flow
-    // Otherwise, create user directly with a temporary password
-    if (requireEmailConfirmation) {
-      const data = await inviteUserRepo({ email, fullName, role });
-      return ok(data);
-    } else {
-      // Generate a temporary password (user will need to change it)
-      const tempPassword = generateTempPassword();
-      const data = await createUserRepo({
-        email,
-        fullName,
-        role,
-        password: tempPassword,
-      });
-      return ok(data);
-    }
+    const data = await createUserRepo({
+      email,
+      fullName,
+      role,
+      password: "Passw0rd",
+    });
+    return ok(data);
   } catch {
     return err("Failed to create user.");
   }
 }
 
-/**
- * Generate a temporary password for direct user creation
- */
-function generateTempPassword(): string {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
-  let password = "";
-  for (let i = 0; i < 16; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
-// Update user action
 export async function updateUserAction(input: unknown): Promise<Result<null>> {
   await requireAdminOrRedirect403();
 
@@ -125,7 +99,6 @@ export async function updateUserAction(input: unknown): Promise<Result<null>> {
   }
 }
 
-// Set user role action
 export async function setUserRoleAction(input: unknown): Promise<Result<null>> {
   await requireAdminOrRedirect403();
 
@@ -144,7 +117,6 @@ export async function setUserRoleAction(input: unknown): Promise<Result<null>> {
   }
 }
 
-// Set user banned action
 export async function setUserBannedAction(
   input: unknown,
 ): Promise<Result<null>> {
@@ -166,7 +138,6 @@ export async function setUserBannedAction(
   }
 }
 
-// Reset user password action
 export async function resetUserPasswordAction(
   input: unknown,
 ): Promise<Result<null>> {
@@ -187,7 +158,6 @@ export async function resetUserPasswordAction(
   }
 }
 
-// Delete user action
 export async function deleteUserAction(input: unknown): Promise<Result<null>> {
   await requireAdminOrRedirect403();
 

@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { getCurrentUser, getCurrentUserRole } from "@/lib/supabase/server";
-import { listPublishedReportsAction, type PublishedReport } from "@/features/published-reports";
+import {
+  listExternalReportsAction,
+  type ExternalReport,
+} from "@/features/external-reports";
 
 export default async function PublishedReportsPage({
   searchParams,
@@ -22,22 +25,11 @@ export default async function PublishedReportsPage({
   const resolvedSearchParams = await searchParams;
   const page = parseInt(resolvedSearchParams.page ?? "1", 10);
 
-  const result = await listPublishedReportsAction({ page });
+  const result = await listExternalReportsAction({ page });
 
-  const reports: PublishedReport[] = result.ok ? result.data.items : [];
+  const reports: ExternalReport[] = result.ok ? result.data.items : [];
   const total = result.ok ? result.data.total : 0;
   const totalPages = result.ok ? result.data.totalPages : 1;
-
-  const getAnalystNames = (report: PublishedReport): string => {
-    const names = report.analysts
-      .slice(0, 2)
-      .map((a) => a.analyst?.full_name ?? a.analyst?.chinese_name ?? "Unknown")
-      .join(", ");
-    if (report.analysts.length > 2) {
-      return `${names} +${report.analysts.length - 2}`;
-    }
-    return names;
-  };
 
   const formatDate = (dateStr: string | null): string => {
     if (!dateStr) return "-";
@@ -59,6 +51,11 @@ export default async function PublishedReportsPage({
     return labels[type] ?? type;
   };
 
+  const getLanguageLabel = (lang: string | null): string => {
+    if (!lang) return "-";
+    return lang === "zh" ? "中文" : lang === "en" ? "English" : lang;
+  };
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -67,7 +64,7 @@ export default async function PublishedReportsPage({
           <p className="text-sm text-[var(--fg-tertiary)] mt-1">
             {role === "analyst"
               ? "Reports you submitted or are assigned to"
-              : "All published reports"}
+              : "All published reports (External)"}
           </p>
         </div>
 
@@ -91,9 +88,12 @@ export default async function PublishedReportsPage({
                       Type
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-[var(--fg-tertiary)] uppercase tracking-wider w-28">
+                      Language
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--fg-tertiary)] uppercase tracking-wider w-28">
                       Publish Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--fg-tertiary)] uppercase tracking-wider w-40">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-[var(--fg-tertiary)] uppercase tracking-wider w-32">
                       Analyst
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-[var(--fg-tertiary)] uppercase tracking-wider w-20">
@@ -121,12 +121,17 @@ export default async function PublishedReportsPage({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-[var(--fg-secondary)]">
+                          {getLanguageLabel(report.report_language)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-[var(--fg-secondary)]">
                           {formatDate(report.published_at)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-[var(--fg-secondary)]">
-                          {getAnalystNames(report)}
+                          {report.analyst ?? "-"}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">

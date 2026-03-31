@@ -11,7 +11,6 @@ export const inviteUserSchema = z.object({
   email: emailSchema,
   fullName: z.string().min(1, "Name is required."),
   role: userRoleSchema,
-  requireEmailConfirmation: z.boolean().optional().default(true),
 });
 
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;

@@ -131,10 +131,6 @@ export async function inviteUser(params: {
   return { id: user.id };
 }
 
-/**
- * Create user directly without email confirmation
- * Used when requireEmailConfirmation is false
- */
 export async function createUser(params: {
   email: string;
   fullName: string;
@@ -146,7 +142,7 @@ export async function createUser(params: {
   const { data, error } = await supabase.auth.admin.createUser({
     email: params.email,
     password: params.password,
-    email_confirm: true, // Auto-confirm email
+    email_confirm: true,
     user_metadata: { full_name: params.fullName },
     app_metadata: { role: params.role },
   });

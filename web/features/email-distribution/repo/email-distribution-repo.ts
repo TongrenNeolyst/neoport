@@ -54,7 +54,6 @@ export async function updateEmailConfig(params: {
 }): Promise<Result<EmailConfig>> {
   const supabase = await createServerClient();
 
-  // Check if config exists
   const { data: existing } = await supabase
     .from("email_config")
     .select("id")
@@ -62,7 +61,6 @@ export async function updateEmailConfig(params: {
     .single();
 
   if (existing) {
-    // Update
     const { data, error } = await supabase
       .from("email_config")
       .update({
@@ -78,13 +76,9 @@ export async function updateEmailConfig(params: {
       .select()
       .single();
 
-    if (error) {
-      return err(error.message);
-    }
-
+    if (error) return err(error.message);
     return ok(data as EmailConfig);
   } else {
-    // Insert
     const { data, error } = await supabase
       .from("email_config")
       .insert({
@@ -98,10 +92,7 @@ export async function updateEmailConfig(params: {
       .select()
       .single();
 
-    if (error) {
-      return err(error.message);
-    }
-
+    if (error) return err(error.message);
     return ok(data as EmailConfig);
   }
 }
@@ -114,10 +105,7 @@ export async function listSubscriptions(): Promise<Result<EmailSubscription[]>> 
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    return err(error.message);
-  }
-
+  if (error) return err(error.message);
   return ok(data as EmailSubscription[]);
 }
 
@@ -136,10 +124,7 @@ export async function addSubscription(
     .select()
     .single();
 
-  if (error) {
-    return err(error.message);
-  }
-
+  if (error) return err(error.message);
   return ok(data as EmailSubscription);
 }
 
@@ -151,43 +136,19 @@ export async function deleteSubscription(id: string): Promise<Result<null>> {
     .delete()
     .eq("id", id);
 
-  if (error) {
-    return err(error.message);
-  }
-
+  if (error) return err(error.message);
   return ok(null);
 }
 
-export async function toggleSubscription(
-  email: string,
-  isActive: boolean,
-): Promise<Result<EmailSubscription>> {
+export async function getMySubscription(
+  userId: string,
+): Promise<Result<EmailSubscription | null>> {
   const supabase = await createServerClient();
 
-  const { data, error } = await supabase
-    .from("email_subscription")
-    .update({ is_active: isActive })
-    .eq("email", email)
-    .select()
-    .single();
-
-  if (error) {
-    return err(error.message);
-  }
-
-  return ok(data as EmailSubscription);
-}
-
-export async function getMySubscription(userId: string): Promise<Result<EmailSubscription | null>> {
-  const supabase = await createServerClient();
-
-  // First check if user has an email from auth.users
   const { data: userData } = await supabase.auth.getUser(userId);
   const userEmail = userData.user?.email;
 
-  if (!userEmail) {
-    return ok(null);
-  }
+  if (!userEmail) return ok(null);
 
   const { data, error } = await supabase
     .from("email_subscription")
@@ -195,10 +156,7 @@ export async function getMySubscription(userId: string): Promise<Result<EmailSub
     .eq("email", userEmail)
     .maybeSingle();
 
-  if (error) {
-    return err(error.message);
-  }
-
+  if (error) return err(error.message);
   return ok(data as EmailSubscription | null);
 }
 
@@ -208,49 +166,42 @@ export async function subscribeMe(
 ): Promise<Result<EmailSubscription>> {
   const supabase = await createServerClient();
 
-  // Get user email
   const { data: userData } = await supabase.auth.getUser(userId);
   const userEmail = userData.user?.email;
 
-  if (!userEmail) {
-    return err("User email not found");
-  }
+  if (!userEmail) return err("User email not found");
 
   const { data, error } = await supabase
     .from("email_subscription")
     .upsert(
-      { email: userEmail, user_id: userId, is_active: true, subscription_type: subscriptionType },
+      {
+        email: userEmail,
+        user_id: userId,
+        is_active: true,
+        subscription_type: subscriptionType,
+      },
       { onConflict: "email" },
     )
     .select()
     .single();
 
-  if (error) {
-    return err(error.message);
-  }
-
+  if (error) return err(error.message);
   return ok(data as EmailSubscription);
 }
 
 export async function unsubscribeMe(userId: string): Promise<Result<null>> {
   const supabase = await createServerClient();
 
-  // Get user email
   const { data: userData } = await supabase.auth.getUser(userId);
   const userEmail = userData.user?.email;
 
-  if (!userEmail) {
-    return err("User email not found");
-  }
+  if (!userEmail) return err("User email not found");
 
   const { error } = await supabase
     .from("email_subscription")
     .delete()
     .eq("email", userEmail);
 
-  if (error) {
-    return err(error.message);
-  }
-
+  if (error) return err(error.message);
   return ok(null);
 }

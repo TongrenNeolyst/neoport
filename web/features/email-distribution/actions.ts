@@ -19,9 +19,7 @@ import {
 
 type Role = "admin" | "sa" | "analyst";
 
-async function getActor(): Promise<
-  Result<{ userId: string; role: Role }>
-> {
+async function getActor(): Promise<Result<{ userId: string; role: Role }>> {
   try {
     const user = await requireAuth();
     const role = user.app_metadata?.role as Role | undefined;
@@ -51,24 +49,15 @@ async function requireAdmin(): Promise<Result<{ userId: string }>> {
 
 export async function getEmailConfigAction(): Promise<Result<EmailConfig | null>> {
   const actor = await requireAdmin();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   const result = await getEmailConfig();
-  if (!result.ok) {
-    return result;
-  }
+  if (!result.ok) return result;
 
-  // Don't return password
   const config = result.data;
   if (config) {
-    return ok({
-      ...config,
-      smtp_pass: undefined,
-    });
+    return ok({ ...config, smtp_pass: undefined });
   }
-
   return ok(null);
 }
 
@@ -81,20 +70,16 @@ export async function updateEmailConfigAction(input: {
   is_enabled: boolean;
 }): Promise<Result<EmailConfig>> {
   const actor = await requireAdmin();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   return updateEmailConfig(input);
 }
 
-// Subscriptions
+// Subscriptions (Admin)
 
 export async function listSubscriptionsAction(): Promise<Result<EmailSubscription[]>> {
   const actor = await requireAdmin();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   return listSubscriptions();
 }
@@ -104,18 +89,14 @@ export async function addSubscriptionAction(
   subscriptionType: SubscriptionType = "normal",
 ): Promise<Result<EmailSubscription>> {
   const actor = await requireAdmin();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   return addSubscription(email, subscriptionType);
 }
 
 export async function deleteSubscriptionAction(id: string): Promise<Result<null>> {
   const actor = await requireAdmin();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   return deleteSubscription(id);
 }
@@ -124,9 +105,7 @@ export async function deleteSubscriptionAction(id: string): Promise<Result<null>
 
 export async function getMySubscriptionAction(): Promise<Result<EmailSubscription | null>> {
   const actor = await getActor();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   return getMySubscription(actor.data.userId);
 }
@@ -135,18 +114,14 @@ export async function subscribeMeAction(
   subscriptionType: SubscriptionType = "normal",
 ): Promise<Result<EmailSubscription>> {
   const actor = await getActor();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   return subscribeMe(actor.data.userId, subscriptionType);
 }
 
 export async function unsubscribeMeAction(): Promise<Result<null>> {
   const actor = await getActor();
-  if (!actor.ok) {
-    return actor;
-  }
+  if (!actor.ok) return actor;
 
   return unsubscribeMe(actor.data.userId);
 }
