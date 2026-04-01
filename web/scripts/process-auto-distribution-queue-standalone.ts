@@ -20,7 +20,7 @@ interface ReportForEmail {
   title: string;
   report_type: string;
   published_at: string;
-  analyst: string | null;
+  analysts: string[];
   investment_thesis: string | null;
   ticker: string | null;
 }
@@ -36,24 +36,45 @@ interface RecipientEntry {
 }
 
 // ===== 邮件主题生成 =====
+function mapCategoryWind(reportType: string): string {
+  const t = reportType.toLowerCase();
+  if (t === "company" || t === "company flash") return "公司研究";
+  if (t === "sector" || t === "sector flash") return "行业研究";
+  if (t === "macro") return "宏观研究";
+  if (t === "strategy" || t === "quantitative") return "策略研究";
+  if (t === "bond") return "债券研究";
+  return reportType;
+}
+
+function mapCategoryTonghuashun(reportType: string): string {
+  const t = reportType.toLowerCase();
+  if (t === "company" || t === "company flash") return "个股研究";
+  if (t === "sector" || t === "sector flash") return "行业研究";
+  if (t === "macro") return "宏观经济";
+  if (t === "strategy" || t === "quantitative") return "投资策略";
+  if (t === "bond") return "债券研究";
+  return reportType;
+}
+
 function generateEmailSubject(
   subscriptionType: SubscriptionType,
   report: ReportForEmail,
-  analystName: string,
 ): string {
-  const reportDate = report.published_at
-    ? new Date(report.published_at).toISOString().split("T")[0]
-    : new Date().toISOString().split("T")[0];
+  const authors = report.analysts.join(",");
+  const firstAuthor = report.analysts[0] ?? "";
 
   switch (subscriptionType) {
-    case "wind":
-      return `华福国际 * ${report.report_type} * ${report.title} * ${reportDate} * ${analystName}`;
+    case "wind": {
+      const dateStr = report.published_at
+        ? new Date(report.published_at).toISOString().split("T")[0].replace(/-/g, "")
+        : new Date().toISOString().split("T")[0].replace(/-/g, "");
+      return `华福国际*${mapCategoryWind(report.report_type)}*${report.title}*${dateStr}*${authors}`;
+    }
     case "tonghuashun": {
-      const writeTime = new Date(report.published_at)
-        .toISOString()
-        .replace("T", " ")
-        .substring(0, 16);
-      return `华福国际 * 个股研究 * ${report.ticker || ""} * ${analystName} * ${writeTime} * ${report.title}`;
+      const dateStr = report.published_at
+        ? new Date(report.published_at).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0];
+      return `华福国际*${mapCategoryTonghuashun(report.report_type)}*${report.title}*${dateStr}*${firstAuthor}`;
     }
     case "normal":
     default:
@@ -67,7 +88,7 @@ function buildEmailBody(report: ReportForEmail): string {
     `Report: ${report.title}`,
     `Published: ${new Date(report.published_at).toLocaleDateString("zh-CN")}`,
   ];
-  if (report.analyst) lines.push(`Analyst: ${report.analyst}`);
+  if (report.analysts.length > 0) lines.push(`Analyst: ${report.analysts.join(", ")}`);
   if (report.ticker) lines.push(`Ticker: ${report.ticker}`);
   lines.push("");
   if (report.investment_thesis) lines.push(report.investment_thesis);
@@ -193,7 +214,7 @@ async function recordSendHistory(params: {
 async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
   const { data, error } = await supabase
     .from("reports")
-    .select("id, title, report_type, published_at, analyst, investment_thesis, ticker")
+    .select("id, title, report_type, published_at, investment_thesis, ticker")
     .eq("id", reportId)
     .single();
 
@@ -201,7 +222,15 @@ async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
     console.error(`[process-queue] Failed to fetch report ${reportId}:`, error);
     return null;
   }
-  return data;
+
+  const { data: analystRows } = await supabase
+    .from("report_analyst")
+    .select("analyst_name")
+    .eq("report_id", reportId);
+
+  const analysts: string[] = (analystRows ?? []).map((r) => r.analyst_name).filter(Boolean);
+
+  return { ...data, analysts };
 }
 
 // ===== 获取收件人 =====
@@ -299,7 +328,7 @@ async function processQueueItem(queueId: string, reportId: string) {
       // Wind / 同花顺使用差异化主题
       let subject: string | undefined;
       if (recipient.subscriptionType === "wind" || recipient.subscriptionType === "tonghuashun") {
-        subject = generateEmailSubject(recipient.subscriptionType as SubscriptionType, report, report.analyst || "");
+        subject = generateEmailSubject(recipient.subscriptionType as SubscriptionType, report);
       }
 
       console.log(`[process-queue] Sending to ${recipient.email} (${recipient.subscriptionType}): ${subject || "default"}`);

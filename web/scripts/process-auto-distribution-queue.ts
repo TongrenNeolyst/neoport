@@ -96,7 +96,7 @@ async function processQueueItem(queueId: string, reportId: string) {
       // Wind / 同花顺使用差异化主题，普通/分析师/联系人使用标题
       let subject: string | undefined;
       if (recipient.subscriptionType === "wind" || recipient.subscriptionType === "tonghuashun") {
-        subject = generateEmailSubject(recipient.subscriptionType, report, report.analyst || "");
+        subject = generateEmailSubject(recipient.subscriptionType, report);
       }
 
       const sendResult = await sendReportEmail({
@@ -143,7 +143,7 @@ async function processQueueItem(queueId: string, reportId: string) {
 async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
   const { data, error } = await supabase
     .from("reports")
-    .select("id, title, report_type, published_at, analyst, investment_thesis, ticker")
+    .select("id, title, report_type, published_at, investment_thesis, ticker")
     .eq("id", reportId)
     .single();
 
@@ -152,12 +152,20 @@ async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
     return null;
   }
 
+  // 从 report_analyst 表获取所有分析师名字
+  const { data: analystRows } = await supabase
+    .from("report_analyst")
+    .select("analyst_name")
+    .eq("report_id", reportId);
+
+  const analysts: string[] = (analystRows ?? []).map((r) => r.analyst_name).filter(Boolean);
+
   return {
     id: data.id,
     title: data.title,
     report_type: data.report_type,
     published_at: data.published_at,
-    analyst: data.analyst,
+    analysts,
     investment_thesis: data.investment_thesis,
     ticker: data.ticker,
   };

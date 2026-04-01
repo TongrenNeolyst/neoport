@@ -69,7 +69,7 @@ logs() {
 status() {
   if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     echo "[deploy-queue] Container $CONTAINER_NAME is RUNNING"
-    docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Names}}\t{{.Status}}\t{{.Created}}"
+    docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Names}}\t{{.Status}}"
   else
     echo "[deploy-queue] Container $CONTAINER_NAME is NOT running"
   fi

@@ -16,7 +16,7 @@ export type ReportForEmail = {
   title: string;
   report_type: string;
   published_at: string;
-  analyst: string | null;
+  analysts: string[];
   investment_thesis: string | null;
   ticker: string | null;
 };
@@ -25,28 +25,54 @@ const MAX_RETRIES = 1;
 const CONNECTION_TIMEOUT_MS = 30_000;
 const SEND_TIMEOUT_MS = 60_000;
 
+/** 报告类型 -> Wind 邮件主题中的报告类别 */
+function mapCategoryWind(reportType: string): string {
+  const t = reportType.toLowerCase();
+  if (t === "company" || t === "company flash") return "公司研究";
+  if (t === "sector" || t === "sector flash") return "行业研究";
+  if (t === "macro") return "宏观研究";
+  if (t === "strategy" || t === "quantitative") return "策略研究";
+  if (t === "bond") return "债券研究";
+  return reportType;
+}
+
+/** 报告类型 -> 同花顺邮件主题中的报告类别 */
+function mapCategoryTonghuashun(reportType: string): string {
+  const t = reportType.toLowerCase();
+  if (t === "company" || t === "company flash") return "个股研究";
+  if (t === "sector" || t === "sector flash") return "行业研究";
+  if (t === "macro") return "宏观经济";
+  if (t === "strategy" || t === "quantitative") return "投资策略";
+  if (t === "bond") return "债券研究";
+  return reportType;
+}
+
 /**
  * Generate email subject based on subscription type.
- * Wind: 华福国际 * 报告类型 * 标题 * 日期 * 分析师
- * 同花顺: 华福国际 * 个股研究 * 股票代码 * 分析师 * 时间 * 标题
- * 普通: 标题
+ * Wind:       华福国际 * 报告类别 * 报告标题 * 报告日期(yyyyMMdd) * 报告作者(,号分割)
+ * 同花顺:     华福国际 * 报告类别 * 报告标题 * 报告日期(yyyy-MM-dd) * 报告作者(仅第一个)
+ * 普通:       报告标题
  */
 export function generateEmailSubject(
   subscriptionType: SubscriptionType,
   report: ReportForEmail,
-  analystName: string,
 ): string {
-  const reportDate = report.published_at
-    ? new Date(report.published_at).toISOString().split("T")[0]
-    : new Date().toISOString().split("T")[0];
+  const authors = report.analysts.join(",");
+  const firstAuthor = report.analysts[0] ?? "";
 
   switch (subscriptionType) {
-    case "wind":
-      return `华福国际 * ${report.report_type} * ${report.title} * ${reportDate} * ${analystName}`;
+    case "wind": {
+      const dateStr = report.published_at
+        ? new Date(report.published_at).toISOString().split("T")[0].replace(/-/g, "")
+        : new Date().toISOString().split("T")[0].replace(/-/g, "");
+      return `华福国际*${mapCategoryWind(report.report_type)}*${report.title}*${dateStr}*${authors}`;
+    }
 
     case "tonghuashun": {
-      const writeTime = new Date(report.published_at).toISOString().replace("T", " ").substring(0, 16);
-      return `华福国际 * 个股研究 * ${report.ticker || ""} * ${analystName} * ${writeTime} * ${report.title}`;
+      const dateStr = report.published_at
+        ? new Date(report.published_at).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0];
+      return `华福国际*${mapCategoryTonghuashun(report.report_type)}*${report.title}*${dateStr}*${firstAuthor}`;
     }
 
     case "normal":
@@ -97,7 +123,7 @@ async function trySend(
 
   const subject = customSubject || `[Report] ${report.title} - ${new Date(report.published_at).toLocaleDateString("zh-CN")}`;
 
-  const bodyText = buildEmailBody(report);
+  const bodyHtml = buildEmailHtmlBody(report);
 
   const mailAttachments = await resolveAttachments(attachments);
 
@@ -106,7 +132,7 @@ async function trySend(
       from: config.smtp_from,
       to: recipientEmail,
       subject,
-      text: bodyText,
+      html: bodyHtml,
       attachments: mailAttachments,
     });
 
@@ -136,29 +162,14 @@ function buildTransporter(config: SmtpConfig): Transporter {
   });
 }
 
-function buildEmailBody(report: ReportForEmail): string {
-  const lines: string[] = [
-    `Report: ${report.title}`,
-    `Published: ${new Date(report.published_at).toLocaleDateString("zh-CN")}`,
-  ];
-
-  if (report.analyst) {
-    lines.push(`Analyst: ${report.analyst}`);
-  }
-
-  if (report.ticker) {
-    lines.push(`Ticker: ${report.ticker}`);
-  }
-
-  lines.push("");
-
+/**
+ * Build HTML email body from Investment Thesis (rich text).
+ */
+function buildEmailHtmlBody(report: ReportForEmail): string {
   if (report.investment_thesis) {
-    lines.push(report.investment_thesis);
+    return report.investment_thesis;
   }
-
-  lines.push("", "Please find the report attached.", "---", "This is an automated email. Please do not reply.");
-
-  return lines.join("\n");
+  return `<p>Please find the report attached.</p>`;
 }
 
 async function resolveAttachments(attachments: ReportAttachment[]): Promise<{ filename: string; content: Buffer }[]> {

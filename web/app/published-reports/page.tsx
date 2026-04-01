@@ -40,20 +40,15 @@ export default async function PublishedReportsPage({
     });
   };
 
-  const getReportTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      company: "Company",
-      sector: "Sector",
-      company_flash: "Company Flash",
-      sector_flash: "Sector Flash",
-      common: "Common",
-    };
-    return labels[type] ?? type;
-  };
+  const capitalize = (s: string): string =>
+    s.charAt(0).toUpperCase() + s.slice(1);
+
+  const getReportTypeLabel = (type: string): string =>
+    type.split("_").map(capitalize).join(" ");
 
   const getLanguageLabel = (lang: string | null): string => {
     if (!lang) return "-";
-    return lang === "zh" ? "中文" : lang === "en" ? "English" : lang;
+    return lang === "zh" ? "Chinese" : lang === "en" ? "English" : lang;
   };
 
   return (
@@ -64,7 +59,7 @@ export default async function PublishedReportsPage({
           <p className="text-sm text-[var(--fg-tertiary)] mt-1">
             {role === "analyst"
               ? "Reports you submitted or are assigned to"
-              : "All published reports (External)"}
+              : "All published reports"}
           </p>
         </div>
 

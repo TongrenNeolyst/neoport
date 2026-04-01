@@ -65,20 +65,15 @@ export default async function PublishedReportDetailPage({
     });
   };
 
-  const getReportTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      company: "Company",
-      sector: "Sector",
-      company_flash: "Company Flash",
-      sector_flash: "Sector Flash",
-      common: "Common",
-    };
-    return labels[type] ?? type;
-  };
+  const capitalize = (s: string): string =>
+    s.charAt(0).toUpperCase() + s.slice(1);
+
+  const getReportTypeLabel = (type: string): string =>
+    type.split("_").map(capitalize).join(" ");
 
   const getLanguageLabel = (lang: string | null): string => {
     if (!lang) return "-";
-    return lang === "zh" ? "中文" : lang === "en" ? "English" : lang;
+    return lang === "zh" ? "Chinese" : lang === "en" ? "English" : lang;
   };
 
   const getRatingBadge = (rating: string | null) => {
@@ -232,10 +227,9 @@ export default async function PublishedReportDetailPage({
           <div className="bg-[var(--bg-surface)] rounded-lg shadow p-6 mb-6">
             <h2 className="text-lg font-semibold text-[var(--fg-primary)] mb-4">Investment Thesis</h2>
             <div
-              className="prose prose-sm max-w-none text-[var(--fg-secondary)] whitespace-pre-wrap"
-            >
-              {report.investment_thesis}
-            </div>
+              className="prose prose-sm max-w-none text-[var(--fg-secondary)]"
+              dangerouslySetInnerHTML={{ __html: report.investment_thesis }}
+            />
           </div>
         )}
 
