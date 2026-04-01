@@ -82,20 +82,6 @@ function generateEmailSubject(
   }
 }
 
-// ===== 邮件正文 =====
-function buildEmailBody(report: ReportForEmail): string {
-  const lines: string[] = [
-    `Report: ${report.title}`,
-    `Published: ${new Date(report.published_at).toLocaleDateString("zh-CN")}`,
-  ];
-  if (report.analysts.length > 0) lines.push(`Analyst: ${report.analysts.join(", ")}`);
-  if (report.ticker) lines.push(`Ticker: ${report.ticker}`);
-  lines.push("");
-  if (report.investment_thesis) lines.push(report.investment_thesis);
-  lines.push("", "Please find the report attached.", "---", "This is an automated email. Please do not reply.");
-  return lines.join("\n");
-}
-
 // ===== SMTP 配置加载 =====
 interface SmtpConfig {
   smtp_host: string;
@@ -153,6 +139,7 @@ async function sendReportEmail(params: {
   recipientEmail: string;
   attachments: ReportAttachment[];
   subject?: string;
+  bodyHtml?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const config = await loadSmtpConfig();
   if (!config) return { ok: false, error: "SMTP config not available" };
@@ -166,10 +153,7 @@ async function sendReportEmail(params: {
     tls: { rejectUnauthorized: false },
   });
 
-  const subject =
-    params.subject ||
-    `[Report] ${params.report.title} - ${new Date(params.report.published_at).toLocaleDateString("zh-CN")}`;
-  const bodyText = buildEmailBody(params.report);
+  const subject = params.subject || params.report.title;
   const mailAttachments = await resolveAttachments(params.attachments);
 
   let lastError = "";
@@ -179,7 +163,7 @@ async function sendReportEmail(params: {
         from: config.smtp_from,
         to: params.recipientEmail,
         subject,
-        text: bodyText,
+        html: params.bodyHtml || undefined,
         attachments: mailAttachments,
       });
       return { ok: true };
@@ -214,7 +198,7 @@ async function recordSendHistory(params: {
 async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
   const { data, error } = await supabase
     .from("reports")
-    .select("id, title, report_type, published_at, investment_thesis, ticker")
+    .select("id, title, report_type, published_at, investment_thesis, ticker, analyst")
     .eq("id", reportId)
     .single();
 
@@ -223,14 +207,20 @@ async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
     return null;
   }
 
-  const { data: analystRows } = await supabase
-    .from("report_analyst")
-    .select("analyst_name")
-    .eq("report_id", reportId);
+  const analysts: string[] = (data.analyst ?? "")
+    .split(",")
+    .map((n: string) => n.trim())
+    .filter(Boolean);
 
-  const analysts: string[] = (analystRows ?? []).map((r) => r.analyst_name).filter(Boolean);
-
-  return { ...data, analysts };
+  return {
+    id: data.id,
+    title: data.title,
+    report_type: data.report_type,
+    published_at: data.published_at,
+    analysts,
+    investment_thesis: data.investment_thesis,
+    ticker: data.ticker,
+  };
 }
 
 // ===== 获取收件人 =====
@@ -291,7 +281,7 @@ async function fetchAttachments(reportId: string): Promise<ReportAttachment[]> {
 async function processQueueItem(queueId: string, reportId: string) {
   console.log(`[process-queue] Processing queue item ${queueId} (report: ${reportId})`);
 
-  // 标记 processing
+  // 标记 processing（乐观锁：只有 status='waiting' 才能更新，防止重复处理）
   const { error: updateError } = await supabase
     .from("report_distribution_queue")
     .update({ status: "processing" })
@@ -300,6 +290,18 @@ async function processQueueItem(queueId: string, reportId: string) {
 
   if (updateError) {
     console.error(`[process-queue] Failed to update queue ${queueId}:`, updateError);
+    return;
+  }
+
+  // 乐观锁检查：再次查询确认状态已更新，防止并发抢走
+  const { data: currentRow } = await supabase
+    .from("report_distribution_queue")
+    .select("status")
+    .eq("id", queueId)
+    .single();
+
+  if (currentRow?.status !== "processing") {
+    console.log(`[process-queue] Queue ${queueId} status is ${currentRow?.status}, skipping.`);
     return;
   }
 
@@ -325,15 +327,16 @@ async function processQueueItem(queueId: string, reportId: string) {
     for (const recipient of recipients) {
       const sentAt = new Date().toISOString();
 
-      // Wind / 同花顺使用差异化主题
+      // Wind / 同花顺使用差异化主题，所有类型正文均为 HTML 摘要
       let subject: string | undefined;
+      const bodyHtml = report.investment_thesis || "";
       if (recipient.subscriptionType === "wind" || recipient.subscriptionType === "tonghuashun") {
         subject = generateEmailSubject(recipient.subscriptionType as SubscriptionType, report);
       }
 
       console.log(`[process-queue] Sending to ${recipient.email} (${recipient.subscriptionType}): ${subject || "default"}`);
 
-      const result = await sendReportEmail({ report, recipientEmail: recipient.email, attachments, subject });
+      const result = await sendReportEmail({ report, recipientEmail: recipient.email, attachments, subject, bodyHtml });
 
       if (result.ok) {
         await recordSendHistory({ reportId, email: recipient.email, status: "sent", sentAt });

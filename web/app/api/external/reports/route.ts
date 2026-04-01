@@ -40,17 +40,23 @@ function validateApiKey(request: NextRequest): boolean {
 function parseAnalystAndEmails(raw: string): { name: string | null; emails: string[] } {
   const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
   const emails: string[] = [];
+  const names: string[] = [];
 
   for (const part of parts) {
     const emailMatch = part.match(/<([^>]+)>/);
     if (emailMatch) {
       emails.push(emailMatch[1].trim().toLowerCase());
     }
+    const nameMatch = part.match(/^(.+?)\s*</);
+    if (nameMatch) {
+      names.push(nameMatch[1].trim());
+    } else {
+      const cleaned = part.replace(/<[^>]+>/, "").trim();
+      if (cleaned) names.push(cleaned);
+    }
   }
 
-  const firstPart = parts[0] ?? "";
-  const nameMatch = firstPart.match(/^(.+?)\s*</);
-  const name = nameMatch ? nameMatch[1].trim() : null;
+  const name = names.length > 0 ? names.join(", ") : null;
 
   return { name, emails };
 }

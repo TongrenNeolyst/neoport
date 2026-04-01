@@ -188,14 +188,15 @@ export default async function PublishedReportDetailPage({
             <div className="text-xs font-medium text-[var(--fg-tertiary)] uppercase tracking-wider">
               Analyst
             </div>
-            <div className="mt-1 text-sm text-[var(--fg-primary)]">
-              {report.analyst ?? "-"}
+            <div className="mt-1 text-sm text-[var(--fg-primary)] space-y-1">
+              {report.analyst
+                ? report.analyst.split(", ").map((name, i) => (
+                    <div key={i}>
+                      {name} {report.analyst_emails[i] ? `<${report.analyst_emails[i]}>` : ""}
+                    </div>
+                  ))
+                : report.analyst_emails.map((email) => <div key={email}>{email}</div>)}
             </div>
-            {report.analyst_emails.length > 0 && (
-              <div className="mt-1 text-xs text-[var(--fg-tertiary)]">
-                {report.analyst_emails.join(", ")}
-              </div>
-            )}
           </div>
           <div className="bg-[var(--bg-surface)] rounded-lg shadow p-4">
             <div className="text-xs font-medium text-[var(--fg-tertiary)] uppercase tracking-wider">
