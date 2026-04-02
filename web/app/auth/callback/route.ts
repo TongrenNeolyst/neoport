@@ -1,14 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { exchangeCodeForSession, verifyOtp } from "@/features/auth/server";
-
-type OtpType =
-  | "signup"
-  | "invite"
-  | "magiclink"
-  | "recovery"
-  | "email_change"
-  | "email";
+import { exchangeCodeForSession, verifyOtp, type OtpType } from "@/features/auth/server";
 
 const OTP_TYPES: readonly OtpType[] = [
   "signup",
@@ -17,7 +9,7 @@ const OTP_TYPES: readonly OtpType[] = [
   "recovery",
   "email_change",
   "email",
-];
+] as const;
 
 function isSafeNextPath(next: string) {
   if (!next.startsWith("/")) return false;

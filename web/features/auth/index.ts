@@ -6,5 +6,4 @@ export {
 } from "./actions";
 
 // Server-only exports are available from "./server" directly
-// Do NOT re-export them here to avoid "server-only" errors in Client Components
-// import { getCurrentUser, requireAuth, ... } from "@/features/auth/server";
+// Do NOT re-export server-only exports here to avoid "server-only" errors in Client Components

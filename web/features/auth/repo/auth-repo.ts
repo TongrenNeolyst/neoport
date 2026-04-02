@@ -3,6 +3,8 @@ import "server-only";
 import { err, ok, type Result } from "@/lib/result";
 import { createServerClient } from "@/lib/supabase/server";
 
+export type OtpType = "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
+
 export async function signInWithPassword(params: {
   email: string;
   password: string;
@@ -43,7 +45,7 @@ export async function exchangeCodeForSession(params: {
 
 export async function verifyOtp(params: {
   token_hash: string;
-  type: "signup" | "invite" | "magiclink" | "recovery" | "email_change" | "email";
+  type: OtpType;
 }): Promise<Result<null>> {
   const supabase = await createServerClient();
   const { error } = await supabase.auth.verifyOtp({

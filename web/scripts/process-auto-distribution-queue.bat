@@ -9,7 +9,7 @@ REM Run from web directory (parent of scripts/)
 cd /d "%~dp0"
 
 REM Run the processor
-npx tsx scripts/process-auto-distribution-queue.ts
+npx tsx --env-file=.env scripts/process-auto-distribution-queue-standalone.ts
 set EXIT_CODE=%ERRORLEVEL%
 
 if %EXIT_CODE% equ 0 (

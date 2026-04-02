@@ -22,7 +22,7 @@ export async function listExternalReportsAction(input: {
     totalPages: number;
   }>
 > {
-  const user = await requireAuth();
+  await requireAuth();
   const role = await getCurrentUserRole();
   if (role !== "admin" && role !== "sa" && role !== "analyst") {
     return err("No permission");
@@ -34,7 +34,7 @@ export async function listExternalReportsAction(input: {
 export async function getExternalReportDetailAction(
   reportId: string,
 ): Promise<Result<ExternalReportDetail>> {
-  const user = await requireAuth();
+  await requireAuth();
   const role = await getCurrentUserRole();
   if (role !== "admin" && role !== "sa" && role !== "analyst") {
     return err("No permission");
@@ -46,7 +46,7 @@ export async function getExternalReportDetailAction(
 export async function getExternalReportSignedUrlAction(
   filePath: string,
 ): Promise<Result<string>> {
-  const user = await requireAuth();
+  await requireAuth();
   const role = await getCurrentUserRole();
   if (role !== "admin" && role !== "sa" && role !== "analyst") {
     return err("No permission");
