@@ -27,7 +27,7 @@ const OPTIONAL_FIELDS: { name: string; maxLength?: number }[] = [
   { name: "sector", maxLength: 200 },
   { name: "region", maxLength: 100 },
   { name: "report_language", maxLength: 10 },
-  { name: "investment_thesis", maxLength: 5000 },
+  { name: "investment_thesis" },
   { name: "analyst", maxLength: 500 },
   { name: "contact_person", maxLength: 200 },
 ];

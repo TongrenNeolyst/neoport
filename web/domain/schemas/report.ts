@@ -32,7 +32,7 @@ const reportTypeSchema = z
   .max(64, "Report type is too long");
 
 const optionalShortText = z.string().trim().max(255, "Value too long").nullable().optional();
-const optionalLongText = z.string().trim().max(4000, "Value too long").nullable().optional();
+const optionalLongText = z.string().trim().max(35000, "Value too long").nullable().optional();
 
 export const reportAnalystInputSchema = z.object({
   analyst_id: z.string().uuid("Analyst is required"),
