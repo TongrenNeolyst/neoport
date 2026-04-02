@@ -23,6 +23,7 @@ const REQUIRED_FIELDS: { name: string; maxLength?: number }[] = [
 
 const OPTIONAL_FIELDS: { name: string; maxLength?: number }[] = [
   { name: "ticker", maxLength: 50 },
+  { name: "ticker_name", maxLength: 50 },
   { name: "rating", maxLength: 100 },
   { name: "target_price" },
   { name: "sector", maxLength: 200 },
@@ -206,6 +207,7 @@ export async function POST(request: NextRequest) {
     title: fields["title"]!,
     report_type: fields["report_type"]!,
     ticker: fields["ticker"] ?? null,
+    ticker_name: fields["ticker_name"] ?? null,
     rating: fields["rating"] ?? null,
     target_price: fields["target_price"] ? parseFloat(fields["target_price"]!) : null,
     sector: fields["sector"] ?? null,

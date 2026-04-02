@@ -10,6 +10,7 @@ export type ExternalReport = {
   title: string;
   report_type: string;
   ticker: string | null;
+  ticker_name: string | null;
   rating: string | null;
   target_price: number | null;
   sector: string | null;
@@ -44,6 +45,7 @@ export type CreateReportParams = {
   title: string;
   report_type: string;
   ticker?: string | null;
+  ticker_name?: string | null;
   rating?: string | null;
   target_price?: number | null;
   sector?: string | null;
@@ -207,6 +209,7 @@ export async function createReport(params: CreateReportParams): Promise<Result<E
       title: params.title,
       report_type: params.report_type,
       ticker: params.ticker ?? null,
+      ticker_name: params.ticker_name ?? null,
       rating: params.rating ?? null,
       target_price: params.target_price ?? null,
       sector: params.sector ?? null,
