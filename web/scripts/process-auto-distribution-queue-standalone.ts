@@ -23,6 +23,8 @@ interface ReportForEmail {
   analysts: string[];
   investment_thesis: string | null;
   ticker: string | null;
+  ticker_name: string | null;
+  sector: string | null;
 }
 
 interface ReportAttachment {
@@ -71,10 +73,19 @@ function generateEmailSubject(
       return `华福国际*${mapCategoryWind(report.report_type)}*${report.title}*${dateStr}*${authors}`;
     }
     case "tonghuashun": {
+      const t = report.report_type.toLowerCase();
       const dateStr = report.published_at
         ? new Date(report.published_at).toISOString().split("T")[0]
         : new Date().toISOString().split("T")[0];
-      return `华福国际*${mapCategoryTonghuashun(report.report_type)}*${report.title}*${dateStr}*${firstAuthor}`;
+      let subject = "";
+      if (t === "company" || t === "company flash") {
+        subject = `华福国际*个股研究*${report.ticker_name ?? ""}*${firstAuthor}*${dateStr}*${report.title}`;
+      } else if (t === "sector" || t === "sector flash") {
+        subject = `华福国际*行业研究*${report.sector ?? ""}*${firstAuthor}*${dateStr}*${report.title}`;
+      } else {
+        subject = `华福国际*${mapCategoryTonghuashun(report.report_type)}*${firstAuthor}*${dateStr}*${report.title}`;
+      }
+      return subject;
     }
     case "normal":
     default:
@@ -198,7 +209,7 @@ async function recordSendHistory(params: {
 async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
   const { data, error } = await supabase
     .from("reports")
-    .select("id, title, report_type, published_at, investment_thesis, ticker, analyst")
+    .select("id, title, report_type, published_at, investment_thesis, ticker, ticker_name, sector, analyst")
     .eq("id", reportId)
     .single();
 
@@ -220,6 +231,8 @@ async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
     analysts,
     investment_thesis: data.investment_thesis,
     ticker: data.ticker,
+    ticker_name: data.ticker_name,
+    sector: data.sector,
   };
 }
 
