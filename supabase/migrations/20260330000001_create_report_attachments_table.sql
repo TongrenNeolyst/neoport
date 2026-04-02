@@ -25,7 +25,7 @@ create table if not exists report_attachments (
   -- 原始文件名，包含扩展名（如 "行业报告2024.pdf"），必填。
   original_name text        not null,
 
-  -- Storage 中的文件路径（如 "external-reports/{report_id}/行业报告2024.pdf"），必填。
+  -- Storage 中的文件路径（如 "external-reports/{report_id}/{uuid}.pdf"），必填；文件名用 UUID 避免特殊字符问题。
   file_path     text        not null,
 
   -- 文件大小，单位为字节（bytes），必填。
@@ -52,7 +52,7 @@ comment on table public.report_attachments is '外部报告附件元信息表：
 comment on column public.report_attachments.id is '主键 UUID';
 comment on column public.report_attachments.report_id is '关联的报告 ID，关联 reports.id；删除报告时自动级联删除附件元信息';
 comment on column public.report_attachments.original_name is '原始文件名，包含扩展名（如"行业报告2024.pdf"）';
-comment on column public.report_attachments.file_path is 'Storage 中的文件路径，如 external-reports/{report_id}/文件名.pdf';
+comment on column public.report_attachments.file_path is 'Storage 中的文件路径，如 external-reports/{report_id}/{uuid}.pdf';
 comment on column public.report_attachments.file_size is '文件大小，单位为字节（bytes）';
 comment on column public.report_attachments.mime_type is '文件 MIME 类型，如 application/pdf、application/msword';
 comment on column public.report_attachments.created_at is '附件上传时间，UTC 时区';

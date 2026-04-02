@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 
 import {
   addAnalystEmail,
@@ -234,7 +235,7 @@ export async function POST(request: NextRequest) {
   // 15. 上传附件到 Storage 并写入元信息
   for (const att of attachments) {
     const buffer = Buffer.from(await att.file.arrayBuffer());
-    const filePath = `external-reports/${report.id}/${encodeURIComponent(att.file.name)}`;
+    const filePath = `external-reports/${report.id}/${randomUUID()}.pdf`;
 
     const uploadResult = await uploadToStorage(filePath, buffer, att.file.type);
     if (!uploadResult.ok) {
