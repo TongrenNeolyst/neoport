@@ -12,6 +12,13 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+// Neolyst Storage client（附件文件在 Neolyst 的 reports bucket）
+const NEOLYST_URL = process.env.NEOLYST_SUPABASE_URL!;
+const NEOLYST_KEY = process.env.NEOLYST_SUPABASE_SERVICE_ROLE_KEY!;
+const neolystClient = createClient(NEOLYST_URL, NEOLYST_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
 // ===== 类型 =====
 type SubscriptionType = "normal" | "wind" | "tonghuashun";
 
@@ -117,14 +124,15 @@ async function loadSmtpConfig(): Promise<SmtpConfig | null> {
   return data;
 }
 
-// ===== 附件下载 =====
+// ===== 附件下载（从 Neolyst Storage） =====
 async function resolveAttachments(
   attachments: ReportAttachment[],
 ): Promise<{ filename: string; content: Buffer }[]> {
   const resolved: { filename: string; content: Buffer }[] = [];
   for (const att of attachments) {
-    const { data, error } = await supabase.storage
-      .from("external-reports")
+    // 从 Neolyst 的 reports bucket 下载
+    const { data, error } = await neolystClient.storage
+      .from("reports")
       .download(att.file_path);
 
     if (error || !data) {

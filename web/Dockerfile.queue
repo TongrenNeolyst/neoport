@@ -18,4 +18,5 @@ COPY . .
 # RUN pnpm build
 
 # Default command
-CMD ["npx", "tsx", "--env-file=.env", "scripts/process-auto-distribution-queue-standalone.ts"]
+# 同时运行两个后台进程：同步 + 队列处理
+CMD ["sh", "-c", "npx tsx --env-file=.env scripts/sync-reports-from-neolyst.ts & npx tsx --env-file=.env scripts/process-auto-distribution-queue-standalone.ts & wait"]

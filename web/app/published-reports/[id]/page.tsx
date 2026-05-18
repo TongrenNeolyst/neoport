@@ -190,9 +190,9 @@ export default async function PublishedReportDetailPage({
             </div>
             <div className="mt-1 text-sm text-[var(--fg-primary)] space-y-1">
               {report.analyst
-                ? report.analyst.split(", ").map((name, i) => (
+                ? report.analyst.split(",").map((name, i) => (
                     <div key={i}>
-                      {name} {report.analyst_emails[i] ? `<${report.analyst_emails[i]}>` : ""}
+                      {name.trim()} {report.analyst_emails[i] ? `<${report.analyst_emails[i]}>` : ""}
                     </div>
                   ))
                 : report.analyst_emails.map((email) => <div key={email}>{email}</div>)}
