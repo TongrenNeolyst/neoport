@@ -160,6 +160,26 @@ async function resolveContactPersonNames(
   return map;
 }
 
+// ===== 批量获取行业名称（按 sector_id 查 sector 表）=====
+async function resolveSectorNames(
+  sectorIds: (string | null)[],
+): Promise<Map<string, string>> {
+  const validIds = sectorIds.filter((id): id is string => Boolean(id));
+  if (validIds.length === 0) return new Map();
+
+  const { data } = await neolystClient
+    .from("sector")
+    .select("id, name_cn, wind_name")
+    .in("id", validIds);
+
+  const map = new Map<string, string>();
+  for (const s of data ?? []) {
+    // 优先用 wind_name（与同花顺/Wind 渠道对齐），缺失时回退到 name_cn
+    map.set(s.id, s.wind_name || s.name_cn || "");
+  }
+  return map;
+}
+
 // ===== 检查本地是否已存在 =====
 async function findLocalByNeolystId(neolystId: string): Promise<string | null> {
   const { data } = await localClient
@@ -172,7 +192,12 @@ async function findLocalByNeolystId(neolystId: string): Promise<string | null> {
 }
 
 // ===== Upsert 主表 =====
-async function upsertReport(report: NeolystReport, analystName: string | null, contactPersonName: string | null): Promise<string> {
+async function upsertReport(
+  report: NeolystReport,
+  analystName: string | null,
+  contactPersonName: string | null,
+  sectorName: string | null,
+): Promise<string> {
   const { data, error } = await localClient
     .from("reports")
     .upsert(
@@ -184,7 +209,7 @@ async function upsertReport(report: NeolystReport, analystName: string | null, c
         ticker_name: null,
         rating: report.rating,
         target_price: report.target_price,
-        sector: null,
+        sector: sectorName,
         region: report.region_code,
         report_language: report.report_language,
         investment_thesis: report.investment_thesis,
@@ -325,6 +350,10 @@ async function syncOnce(since: Date): Promise<{
   );
   const contactNameMap = await resolveContactPersonNames(contactEmails);
 
+  // 收集所有 sector_id，批量解析行业名称
+  const sectorIds = reports.map((r) => r.sector_id ?? null);
+  const sectorNameMap = await resolveSectorNames(sectorIds);
+
   const result = { synced: 0, skipped: 0, errors: [] as string[] };
 
   for (const r of reports) {
@@ -348,6 +377,11 @@ async function syncOnce(since: Date): Promise<{
         ? (contactNameMap.get(contactEmail) ?? contactEmail)
         : null;
 
+      // 解析行业名称
+      const sectorName = r.sector_id
+        ? (sectorNameMap.get(r.sector_id) ?? null)
+        : null;
+
       // 构建附件列表
       const attachments: Array<{ path: string; createdAt: string }> = [];
       for (const path of [r.pdf_path, r.word_path, r.model_path]) {
@@ -362,7 +396,7 @@ async function syncOnce(since: Date): Promise<{
         result.skipped++;
       } else {
         // 新报告：完整同步
-        const localId = await upsertReport(r, analystName, contactPersonName);
+        const localId = await upsertReport(r, analystName, contactPersonName, sectorName);
         await syncAnalysts(localId, emails);
         await syncContacts(localId, contactEmail);
         await syncAttachments(localId, attachments);

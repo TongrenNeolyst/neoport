@@ -47,21 +47,21 @@ interface RecipientEntry {
 // ===== 邮件主题生成 =====
 function mapCategoryWind(reportType: string): string {
   const t = reportType.toLowerCase();
-  if (t === "company" || t === "company flash") return "公司研究";
-  if (t === "sector" || t === "sector flash") return "行业研究";
-  if (t === "macro") return "宏观研究";
-  if (t === "strategy" || t === "quantitative") return "策略研究";
-  if (t === "bond") return "债券研究";
+  if (t === "company" || t === "company_flash" || t === "company-translate") return "公司研究";
+  if (t === "sector" || t === "sector_flash" || t === "sector-translate") return "行业研究";
+  if (t === "macro" || t === "macro-translate") return "宏观研究";
+  if (t === "strategy" || t === "strategy-translate" || t === "quantitative" || t === "quantitative-translate") return "策略研究";
+  if (t === "bond" || t === "bond-translate") return "债券研究";
   return reportType;
 }
 
 function mapCategoryTonghuashun(reportType: string): string {
   const t = reportType.toLowerCase();
-  if (t === "company" || t === "company flash") return "个股研究";
-  if (t === "sector" || t === "sector flash") return "行业研究";
-  if (t === "macro") return "宏观经济";
-  if (t === "strategy" || t === "quantitative") return "投资策略";
-  if (t === "bond") return "债券研究";
+  if (t === "company" || t === "company_flash" || t === "company-translate") return "个股研究";
+  if (t === "sector" || t === "sector_flash" || t === "sector-translate") return "行业研究";
+  if (t === "macro" || t === "macro-translate") return "宏观经济";
+  if (t === "strategy" || t === "strategy-translate" || t === "quantitative" || t === "quantitative-translate") return "投资策略";
+  if (t === "bond" || t === "bond-translate") return "债券研究";
   return reportType;
 }
 
@@ -85,9 +85,9 @@ function generateEmailSubject(
         ? new Date(report.published_at).toISOString().split("T")[0]
         : new Date().toISOString().split("T")[0];
       let subject = "";
-      if (t === "company" || t === "company flash") {
+      if (t === "company" || t === "company_flash" || t === "company-translate") {
         subject = `华福国际*个股研究*${report.ticker_name ?? ""}*${firstAuthor}*${dateStr}*${report.title}`;
-      } else if (t === "sector" || t === "sector flash") {
+      } else if (t === "sector" || t === "sector_flash" || t === "sector-translate") {
         subject = `华福国际*行业研究*${report.sector ?? ""}*${firstAuthor}*${dateStr}*${report.title}`;
       } else {
         subject = `华福国际*${mapCategoryTonghuashun(report.report_type)}*${firstAuthor}*${dateStr}*${report.title}`;
@@ -246,21 +246,39 @@ async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
 
 // ===== 获取收件人 =====
 async function fetchRecipients(reportId: string): Promise<RecipientEntry[]> {
-  const result: RecipientEntry[] = [];
+  // analyst/contact 内部去重（同一邮箱在 analyst + contact 中只保留一份，analyst 优先）
+  // 各订阅类型（wind/tonghuashun/normal）独立成行
+  const analystContactMap = new Map<string, RecipientEntry>();
 
-  // 分析师
+  // 分析师（先入，优先保留）
   const { data: analysts } = await supabase
     .from("report_analyst")
     .select("analyst_email")
     .eq("report_id", reportId);
-  if (analysts) for (const a of analysts) result.push({ email: a.analyst_email, subscriptionType: "analyst" });
+  if (analysts) {
+    for (const a of analysts) {
+      const email = a.analyst_email.toLowerCase();
+      if (!analystContactMap.has(email)) {
+        analystContactMap.set(email, { email: a.analyst_email, subscriptionType: "analyst" });
+      }
+    }
+  }
 
-  // 联系人
+  // 联系人（后入，仅在邮箱未出现过时添加）
   const { data: contacts } = await supabase
     .from("report_contact")
     .select("contact_email")
     .eq("report_id", reportId);
-  if (contacts) for (const c of contacts) result.push({ email: c.contact_email, subscriptionType: "contact" });
+  if (contacts) {
+    for (const c of contacts) {
+      const email = c.contact_email.toLowerCase();
+      if (!analystContactMap.has(email)) {
+        analystContactMap.set(email, { email: c.contact_email, subscriptionType: "contact" });
+      }
+    }
+  }
+
+  const result: RecipientEntry[] = Array.from(analystContactMap.values());
 
   // Wind
   const { data: windSubs } = await supabase
@@ -289,13 +307,20 @@ async function fetchRecipients(reportId: string): Promise<RecipientEntry[]> {
   return result;
 }
 
-// ===== 获取附件 =====
+// ===== 获取附件（仅 PDF） =====
 async function fetchAttachments(reportId: string): Promise<ReportAttachment[]> {
   const { data } = await supabase
     .from("report_attachments")
-    .select("file_path, original_name")
+    .select("file_path, original_name, mime_type")
     .eq("report_id", reportId);
-  return (data ?? []).map((a) => ({ file_path: a.file_path, original_name: a.original_name }));
+
+  return (data ?? [])
+    .filter((a) => {
+      // 优先按 mime_type 判断；缺失时回退到扩展名
+      if (a.mime_type) return a.mime_type.toLowerCase() === "application/pdf";
+      return a.original_name.toLowerCase().endsWith(".pdf");
+    })
+    .map((a) => ({ file_path: a.file_path, original_name: a.original_name }));
 }
 
 // ===== 主逻辑 =====
