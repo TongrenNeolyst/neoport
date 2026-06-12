@@ -18,6 +18,8 @@ resources:
       code: ./code
       customRuntimeConfig:
         port: 9000
+        command:
+          - /code/bootstrap
       environmentVariables:
         NEXT_PUBLIC_SUPABASE_URL: ${env('NEXT_PUBLIC_SUPABASE_URL')}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${env('NEXT_PUBLIC_SUPABASE_ANON_KEY')}
