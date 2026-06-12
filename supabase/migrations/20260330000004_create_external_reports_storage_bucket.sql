@@ -47,9 +47,3 @@ create policy "Service role can upload external-reports"
 create policy "Service role can delete external-reports"
   on storage.objects for delete
   using (bucket_id = 'external-reports' and auth.role() = 'service_role');
-
--- ============================================================================
--- 存储桶注释
--- ============================================================================
-
-comment on storage bucket external_reports is '外部报告附件存储桶：存储外部报告的附件文件；路径规则 external-reports/{report_id}/{file_name}；不公开，需签名 URL 访问；单文件最大 50MB';
