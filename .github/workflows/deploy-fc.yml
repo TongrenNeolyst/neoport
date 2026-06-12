@@ -50,5 +50,11 @@ jobs:
       - name: Install Serverless Devs
         run: npm install -g @serverless-devs/s
 
+      - name: Configure Serverless Devs credentials
+        run: |
+          s config add --AccessKeyID "$ALIBABA_CLOUD_ACCESS_KEY_ID" \
+            --AccessKeySecret "$ALIBABA_CLOUD_ACCESS_KEY_SECRET" \
+            -a default -f
+
       - name: Deploy to FC
         run: s deploy -y
