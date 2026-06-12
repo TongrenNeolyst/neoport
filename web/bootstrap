@@ -1,0 +1,3 @@
+#!/bin/bash
+export PORT=${FC_SERVER_PORT:-9000}
+exec /code/node20 server.js

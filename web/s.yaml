@@ -1,0 +1,27 @@
+edition: 3.0.0
+name: neoport
+access: default
+
+resources:
+  neoport:
+    component: fc3
+    props:
+      region: cn-hongkong
+      functionName: neoport
+      runtime: custom.debian10
+      handler: index.handler
+      cpu: 0.5
+      memorySize: 512
+      diskSize: 512
+      timeout: 30
+      instanceConcurrency: 10
+      code: ./code
+      customRuntimeConfig:
+        port: 9000
+      environmentVariables:
+        NEXT_PUBLIC_SUPABASE_URL: ${env('NEXT_PUBLIC_SUPABASE_URL')}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${env('NEXT_PUBLIC_SUPABASE_ANON_KEY')}
+        SUPABASE_SERVICE_ROLE_KEY: ${env('SUPABASE_SERVICE_ROLE_KEY')}
+        NEOLYST_SUPABASE_URL: ${env('NEOLYST_SUPABASE_URL')}
+        NEOLYST_SUPABASE_ANON_KEY: ${env('NEOLYST_SUPABASE_ANON_KEY')}
+        NEOLYST_SUPABASE_SERVICE_ROLE_KEY: ${env('NEOLYST_SUPABASE_SERVICE_ROLE_KEY')}
