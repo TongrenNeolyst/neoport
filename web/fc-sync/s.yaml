@@ -1,0 +1,28 @@
+edition: 3.0.0
+name: neoport-sync
+access: default
+
+resources:
+  neoport-sync:
+    component: fc3
+    props:
+      region: cn-hongkong
+      functionName: neoport-sync
+      runtime: nodejs20
+      handler: index.handler
+      cpu: 0.35
+      memorySize: 512
+      diskSize: 512
+      timeout: 120
+      code: ./dist
+      environmentVariables:
+        NEXT_PUBLIC_SUPABASE_URL: ${env('NEXT_PUBLIC_SUPABASE_URL')}
+        SUPABASE_SERVICE_ROLE_KEY: ${env('SUPABASE_SERVICE_ROLE_KEY')}
+        NEOLYST_SUPABASE_URL: ${env('NEOLYST_SUPABASE_URL')}
+        NEOLYST_SUPABASE_SERVICE_ROLE_KEY: ${env('NEOLYST_SUPABASE_SERVICE_ROLE_KEY')}
+      triggers:
+        - triggerName: every5m
+          triggerType: timer
+          triggerConfig:
+            cronExpression: "@every 5m"
+            enable: true

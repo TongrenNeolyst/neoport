@@ -324,7 +324,7 @@ async function addToDistributionQueue(localId: string): Promise<void> {
 }
 
 // ===== 单次同步 =====
-async function syncOnce(since: Date): Promise<{
+export async function syncOnce(since: Date): Promise<{
   synced: number;
   skipped: number;
   errors: string[];
@@ -475,7 +475,9 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(`[sync] Fatal error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(`[sync] Fatal error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });
+}
