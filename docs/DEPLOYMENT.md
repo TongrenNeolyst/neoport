@@ -114,6 +114,18 @@ NEOLYST_SUPABASE_SERVICE_ROLE_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiO
 
 另需阿里云凭据 Secret：`ALIYUN_AK_ID`、`ALIYUN_AK_SECRET`。
 
+## 同步定时任务（neolyst → neoport）
+
+把 neolyst 已发布的报告每 5 分钟同步到 neoport（含报告数据 + 附件文件）。
+
+- 实现：独立 FC event 函数 `neoport-sync`（不在前端函数里，因为 HTTP 函数不能挂触发器）
+- 代码：`web/fc-sync/`（handler + s.yaml），同步逻辑复用 `web/scripts/sync-reports-from-neolyst.ts`
+- 触发：FC 定时触发器 `@every 5m`
+- 构建/部署/测试方法见 `web/fc-sync/README.md`
+
+> 注意：这只同步报告数据，不发邮件。邮件分发是另一个脚本
+> （`scripts/process-auto-distribution-queue-standalone.ts`），未部署。
+
 ## 关键约定（踩过的坑）
 
 - **为什么自带 Node**：FC custom runtime 基础镜像 GLIBC 太旧（<2.27），

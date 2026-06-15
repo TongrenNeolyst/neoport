@@ -86,3 +86,4 @@ Thumbs.db
 # FC 部署构建产物
 web/code/
 .s/
+web/fc-sync/dist/

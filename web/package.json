@@ -24,6 +24,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.24",
     "cross-env": "^10.1.0",
+    "esbuild": "^0.28.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.12",
     "pg": "^8.18.0",
