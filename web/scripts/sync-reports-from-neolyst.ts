@@ -216,7 +216,8 @@ async function upsertReport(
         analyst: analystName,
         contact_person: contactPersonName,
         published_at: report.published_at ?? report.created_at,
-        updated_at: new Date().toISOString(),
+        created_at: report.created_at,
+        updated_at: report.updated_at,
       },
       { onConflict: "external_id" },
     )
