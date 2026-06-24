@@ -180,6 +180,25 @@ async function resolveSectorNames(
   return map;
 }
 
+// ===== 批量获取公司英文名（按 coverage_id 查 coverage.english_name）=====
+async function resolveTickerNames(
+  coverageIds: (string | null)[],
+): Promise<Map<string, string>> {
+  const validIds = coverageIds.filter((id): id is string => Boolean(id));
+  if (validIds.length === 0) return new Map();
+
+  const { data } = await neolystClient
+    .from("coverage")
+    .select("id, english_name")
+    .in("id", validIds);
+
+  const map = new Map<string, string>();
+  for (const c of data ?? []) {
+    map.set(c.id, c.english_name || "");
+  }
+  return map;
+}
+
 // ===== 检查本地是否已存在 =====
 async function findLocalByNeolystId(neolystId: string): Promise<string | null> {
   const { data } = await localClient
@@ -197,6 +216,7 @@ async function upsertReport(
   analystName: string | null,
   contactPersonName: string | null,
   sectorName: string | null,
+  tickerName: string | null = null,
 ): Promise<string> {
   const { data, error } = await localClient
     .from("reports")
@@ -206,7 +226,7 @@ async function upsertReport(
         title: report.title,
         report_type: report.report_type,
         ticker: report.ticker,
-        ticker_name: null,
+        ticker_name: tickerName,
         rating: report.rating,
         target_price: report.target_price,
         sector: sectorName,
@@ -215,7 +235,7 @@ async function upsertReport(
         investment_thesis: report.investment_thesis,
         analyst: analystName,
         contact_person: contactPersonName,
-        published_at: report.published_at ?? report.created_at,
+        published_at: report.published_at ?? report.updated_at,
         created_at: report.created_at,
         updated_at: report.updated_at,
       },
@@ -355,6 +375,10 @@ export async function syncOnce(since: Date): Promise<{
   const sectorIds = reports.map((r) => r.sector_id ?? null);
   const sectorNameMap = await resolveSectorNames(sectorIds);
 
+  // 收集所有 coverage_id，批量解析公司英文名（coverage.english_name → reports.ticker_name）
+  const coverageIds = reports.map((r) => r.coverage_id ?? null);
+  const tickerNameMap = await resolveTickerNames(coverageIds);
+
   const result = { synced: 0, skipped: 0, errors: [] as string[] };
 
   for (const r of reports) {
@@ -383,6 +407,11 @@ export async function syncOnce(since: Date): Promise<{
         ? (sectorNameMap.get(r.sector_id) ?? null)
         : null;
 
+      // 解析公司英文名（来自 Neolyst coverage.english_name）
+      const tickerName = r.coverage_id
+        ? (tickerNameMap.get(r.coverage_id) || null)
+        : null;
+
       // 构建附件列表
       const attachments: Array<{ path: string; createdAt: string }> = [];
       for (const path of [r.pdf_path, r.word_path, r.model_path]) {
@@ -397,7 +426,7 @@ export async function syncOnce(since: Date): Promise<{
         result.skipped++;
       } else {
         // 新报告：完整同步
-        const localId = await upsertReport(r, analystName, contactPersonName, sectorName);
+        const localId = await upsertReport(r, analystName, contactPersonName, sectorName, tickerName);
         await syncAnalysts(localId, emails);
         await syncContacts(localId, contactEmail);
         await syncAttachments(localId, attachments);

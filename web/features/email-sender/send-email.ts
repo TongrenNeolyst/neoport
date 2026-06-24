@@ -4,7 +4,9 @@ import type { Transporter } from "nodemailer";
 import { err, ok, type Result } from "@/lib/result";
 import { loadSmtpConfig, type SmtpConfig } from "./index";
 
-export type SubscriptionType = "normal" | "wind" | "tonghuashun";
+export type SubscriptionType = "normal" | "wind" | "tonghuashun" | "bloomberg_zh" | "bloomberg_en";
+
+export type ReportLanguage = "zh" | "en";
 
 export type ReportAttachment = {
   file_path: string;
@@ -21,7 +23,39 @@ export type ReportForEmail = {
   ticker: string | null;
   ticker_name: string | null;
   sector: string | null;
+  report_language: string | null;
 };
+
+/** 从 report.report_language 推断出 Bloomberg 订阅类型（默认英文） */
+export function resolveBloombergSubscriptionType(report: ReportForEmail): "bloomberg_zh" | "bloomberg_en" {
+  return report.report_language === "zh" ? "bloomberg_zh" : "bloomberg_en";
+}
+
+/** 报告类型 -> 是否属于"行业/产业"类报告（用于 Bloomberg 邮件的 T: 行） */
+function isSectorReport(reportType: string): boolean {
+  const t = reportType.toLowerCase();
+  return t === "sector" || t === "sector flash";
+}
+
+/** 报告类型 -> 是否属于"公司"类报告（用于 Bloomberg 邮件的 T: 行） */
+function isCompanyReport(reportType: string): boolean {
+  const t = reportType.toLowerCase();
+  return t === "company" || t === "company flash";
+}
+
+/**
+ * 从 report.title 中取第一个冒号前的内容（Bloomberg 邮件主题）
+ * 冒号同时支持英文冒号 ":" 和中文（全角）冒号 "："
+ */
+export function extractBloombergSubject(reportTitle: string): string {
+  // 匹配英文 ":" 或中文全角 "："（U+FF1A）
+  const pattern = /[:：]/;
+  const matcher = pattern.exec(reportTitle);
+  if (matcher) {
+    return reportTitle.substring(0, matcher.index);
+  }
+  return reportTitle;
+}
 
 const MAX_RETRIES = 1;
 const CONNECTION_TIMEOUT_MS = 30_000;
@@ -53,6 +87,7 @@ function mapCategoryTonghuashun(reportType: string): string {
  * Generate email subject based on subscription type.
  * Wind:       华福国际 * 报告类别 * 报告标题 * 报告日期(yyyyMMdd) * 报告作者(,号分割)
  * 同花顺:     华福国际 * 报告类别 * 报告标题 * 报告日期(yyyy-MM-dd) * 报告作者(仅第一个)
+ * Bloomberg(中/英): 报告标题第一个 ":" 号前的内容
  * 普通:       报告标题
  */
 export function generateEmailSubject(
@@ -86,6 +121,11 @@ export function generateEmailSubject(
       return subject;
     }
 
+    case "bloomberg_zh":
+    case "bloomberg_en": {
+      return extractBloombergSubject(report.title);
+    }
+
     case "normal":
     default:
       return report.title;
@@ -101,6 +141,8 @@ export async function sendReportEmail(params: {
   recipientEmail: string;
   attachments: ReportAttachment[];
   subject?: string;
+  bodyHtml?: string;
+  subscriptionType?: SubscriptionType;
 }): Promise<Result<void>> {
   const configResult = await loadSmtpConfig();
   if (!configResult.ok) {
@@ -127,14 +169,22 @@ export async function sendReportEmail(params: {
 async function trySend(
   transporter: Transporter,
   config: SmtpConfig,
-  params: { report: ReportForEmail; recipientEmail: string; attachments: ReportAttachment[]; subject?: string },
+  params: {
+    report: ReportForEmail;
+    recipientEmail: string;
+    attachments: ReportAttachment[];
+    subject?: string;
+    bodyHtml?: string;
+    subscriptionType?: SubscriptionType;
+  },
   attempt: number,
 ): Promise<Result<void>> {
-  const { report, recipientEmail, attachments, subject: customSubject } = params;
+  const { report, recipientEmail, attachments, subject: customSubject, bodyHtml: customBodyHtml, subscriptionType } = params;
 
   const subject = customSubject || `[Report] ${report.title} - ${new Date(report.published_at).toLocaleDateString("zh-CN")}`;
 
-  const bodyHtml = buildEmailHtmlBody(report);
+  // Bloomberg 订阅者使用专门的正文模板
+  const bodyHtml = customBodyHtml ?? (subscriptionType === "bloomberg_zh" || subscriptionType === "bloomberg_en" ? buildBloombergHtmlBody(report, subscriptionType === "bloomberg_zh" ? "zh" : "en") : buildEmailHtmlBody(report));
 
   const mailAttachments = await resolveAttachments(attachments);
 
@@ -181,6 +231,68 @@ function buildEmailHtmlBody(report: ReportForEmail): string {
     return report.investment_thesis;
   }
   return `<p>Please find the report attached.</p>`;
+}
+
+/**
+ * 构造 Bloomberg (彭博) 邮件正文。
+ *  - language: 'zh' → 中文模板；'en' → 英文模板
+ *  - 公司类报告：第一行 = (T: <ticker 空格替换为 @>)
+ *  - 行业类报告：第一行 = (T: <sector 行业标签>)
+ *  - 其他类型：第一行 = (T: N/A)
+ *  - 英文：Dear Bloomberg Research Team, / Report Title: / Summary of main points:
+ *  - 中文：尊敬的彭博研究团队，/ 报告标题: / 主要观点摘要：
+ */
+export function buildBloombergHtmlBody(report: ReportForEmail, language: "zh" | "en" = "en"): string {
+  let tickerLine: string;
+  if (isCompanyReport(report.report_type)) {
+    const t = (report.ticker ?? "").trim();
+    tickerLine = t ? `(T: ${t.replace(/\s+/g, "@")})` : "(T: N/A)";
+  } else if (isSectorReport(report.report_type)) {
+    const sector = (report.sector ?? "").trim();
+    tickerLine = sector ? `(T: ${sector})` : "(T: N/A)";
+  } else {
+    tickerLine = "(T: N/A)";
+  }
+
+  const thesis = report.investment_thesis
+    ? report.investment_thesis
+    : "<p>Please find the report attached.</p>";
+
+  if (language === "zh") {
+    return [
+      `<p>${tickerLine}</p>`,
+      `<p>&nbsp;</p>`,
+      `<p>尊敬的彭博研究团队，</p>`,
+      `<p>&nbsp;</p>`,
+      `<p>报告标题:</p>`,
+      `<p>${escapeHtml(report.title)}</p>`,
+      `<p>&nbsp;</p>`,
+      `<p>主要观点摘要：</p>`,
+      thesis,
+    ].join("\n");
+  }
+
+  return [
+    `<p>${tickerLine}</p>`,
+    `<p>&nbsp;</p>`,
+    `<p>Dear Bloomberg Research Team,</p>`,
+    `<p>&nbsp;</p>`,
+    `<p>Report Title:</p>`,
+    `<p>${escapeHtml(report.title)}</p>`,
+    `<p>&nbsp;</p>`,
+    `<p>Summary of main points:</p>`,
+    thesis,
+  ].join("\n");
+}
+
+/** HTML 实体转义，避免标题中的特殊字符破坏模板 */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 async function resolveAttachments(attachments: ReportAttachment[]): Promise<{ filename: string; content: Buffer }[]> {

@@ -20,7 +20,7 @@ const neolystClient = createClient(NEOLYST_URL, NEOLYST_KEY, {
 });
 
 // ===== 类型 =====
-type SubscriptionType = "normal" | "wind" | "tonghuashun";
+type SubscriptionType = "normal" | "wind" | "tonghuashun" | "bloomberg_zh" | "bloomberg_en";
 
 interface ReportForEmail {
   id: string;
@@ -32,6 +32,7 @@ interface ReportForEmail {
   ticker: string | null;
   ticker_name: string | null;
   sector: string | null;
+  report_language: string | null;
 }
 
 interface ReportAttachment {
@@ -65,6 +66,83 @@ function mapCategoryTonghuashun(reportType: string): string {
   return reportType;
 }
 
+/** 是否为公司类报告（用于 Bloomberg 邮件 T: 行） */
+function isCompanyReport(reportType: string): boolean {
+  const t = reportType.toLowerCase();
+  return t === "company" || t === "company_flash" || t === "company-translate";
+}
+
+/** 是否为行业类报告（用于 Bloomberg 邮件 T: 行） */
+function isSectorReport(reportType: string): boolean {
+  const t = reportType.toLowerCase();
+  return t === "sector" || t === "sector_flash" || t === "sector-translate";
+}
+
+/** HTML 实体转义 */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Bloomberg 邮件主题：取报告标题第一个冒号前的内容
+ * 冒号同时支持英文冒号 ":" 和中文（全角）冒号 "："
+ */
+function extractBloombergSubject(reportTitle: string): string {
+  // 匹配英文 ":" 或中文全角 "："（U+FF1A）
+  const matcher = /[:：]/.exec(reportTitle);
+  if (matcher) return reportTitle.substring(0, matcher.index);
+  return reportTitle;
+}
+
+/** 构造 Bloomberg 邮件正文（按语言） */
+function buildBloombergHtmlBody(report: ReportForEmail, language: "zh" | "en" = "en"): string {
+  let tickerLine: string;
+  if (isCompanyReport(report.report_type)) {
+    const t = (report.ticker ?? "").trim();
+    tickerLine = t ? `(T: ${t.replace(/\s+/g, "@")})` : "(T: N/A)";
+  } else if (isSectorReport(report.report_type)) {
+    const sector = (report.sector ?? "").trim();
+    tickerLine = sector ? `(T: ${sector})` : "(T: N/A)";
+  } else {
+    tickerLine = "(T: N/A)";
+  }
+
+  const thesis = report.investment_thesis
+    ? report.investment_thesis
+    : "<p>Please find the report attached.</p>";
+
+  if (language === "zh") {
+    return [
+      `<p>${tickerLine}</p>`,
+      `<p>&nbsp;</p>`,
+      `<p>尊敬的彭博研究团队，</p>`,
+      `<p>&nbsp;</p>`,
+      `<p>报告标题:</p>`,
+      `<p>${escapeHtml(report.title)}</p>`,
+      `<p>&nbsp;</p>`,
+      `<p>主要观点摘要：</p>`,
+      thesis,
+    ].join("\n");
+  }
+
+  return [
+    `<p>${tickerLine}</p>`,
+    `<p>&nbsp;</p>`,
+    `<p>Dear Bloomberg Research Team,</p>`,
+    `<p>&nbsp;</p>`,
+    `<p>Report Title:</p>`,
+    `<p>${escapeHtml(report.title)}</p>`,
+    `<p>&nbsp;</p>`,
+    `<p>Summary of main points:</p>`,
+    thesis,
+  ].join("\n");
+}
+
 function generateEmailSubject(
   subscriptionType: SubscriptionType,
   report: ReportForEmail,
@@ -93,6 +171,10 @@ function generateEmailSubject(
         subject = `华福国际*${mapCategoryTonghuashun(report.report_type)}*${firstAuthor}*${dateStr}*${report.title}`;
       }
       return subject;
+    }
+    case "bloomberg_zh":
+    case "bloomberg_en": {
+      return extractBloombergSubject(report.title);
     }
     case "normal":
     default:
@@ -217,7 +299,7 @@ async function recordSendHistory(params: {
 async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
   const { data, error } = await supabase
     .from("reports")
-    .select("id, title, report_type, published_at, investment_thesis, ticker, ticker_name, sector, analyst")
+    .select("id, title, report_type, published_at, investment_thesis, ticker, ticker_name, sector, analyst, report_language")
     .eq("id", reportId)
     .single();
 
@@ -241,20 +323,21 @@ async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
     ticker: data.ticker,
     ticker_name: data.ticker_name,
     sector: data.sector,
+    report_language: data.report_language,
   };
 }
 
 // ===== 获取收件人 =====
-async function fetchRecipients(reportId: string): Promise<RecipientEntry[]> {
+async function fetchRecipients(report: ReportForEmail): Promise<RecipientEntry[]> {
   // analyst/contact 内部去重（同一邮箱在 analyst + contact 中只保留一份，analyst 优先）
-  // 各订阅类型（wind/tonghuashun/normal）独立成行
+  // 各订阅类型（wind/tonghuashun/bloomberg_zh/bloomberg_en/normal）独立成行
   const analystContactMap = new Map<string, RecipientEntry>();
 
   // 分析师（先入，优先保留）
   const { data: analysts } = await supabase
     .from("report_analyst")
     .select("analyst_email")
-    .eq("report_id", reportId);
+    .eq("report_id", report.id);
   if (analysts) {
     for (const a of analysts) {
       const email = a.analyst_email.toLowerCase();
@@ -268,7 +351,7 @@ async function fetchRecipients(reportId: string): Promise<RecipientEntry[]> {
   const { data: contacts } = await supabase
     .from("report_contact")
     .select("contact_email")
-    .eq("report_id", reportId);
+    .eq("report_id", report.id);
   if (contacts) {
     for (const c of contacts) {
       const email = c.contact_email.toLowerCase();
@@ -295,6 +378,17 @@ async function fetchRecipients(reportId: string): Promise<RecipientEntry[]> {
     .eq("subscription_type", "tonghuashun")
     .eq("is_active", true);
   if (thsSubs) for (const s of thsSubs) result.push({ email: s.email, subscriptionType: "tonghuashun" });
+
+  // Bloomberg (彭博)：按 report.report_language 路由到对应语言的邮箱
+  //   - 'zh' → 仅 bloomberg_zh 订阅者收到
+  //   - 其他（包括 'en' 与 null）→ 仅 bloomberg_en 订阅者收到
+  const bloombergType: SubscriptionType = report.report_language === "zh" ? "bloomberg_zh" : "bloomberg_en";
+  const { data: bloombergSubs } = await supabase
+    .from("email_subscription")
+    .select("email")
+    .eq("subscription_type", bloombergType)
+    .eq("is_active", true);
+  if (bloombergSubs) for (const s of bloombergSubs) result.push({ email: s.email, subscriptionType: bloombergType });
 
   // 普通
   const { data: normalSubs } = await supabase
@@ -358,7 +452,7 @@ async function processQueueItem(queueId: string, reportId: string) {
       return;
     }
 
-    const recipients = await fetchRecipients(reportId);
+    const recipients = await fetchRecipients(report);
     if (recipients.length === 0) {
       console.log(`[process-queue] No recipients for report ${reportId}. Marking published.`);
       await supabase.from("report_distribution_queue").update({ status: "published", sent_at: new Date().toISOString() }).eq("id", queueId);
@@ -373,11 +467,17 @@ async function processQueueItem(queueId: string, reportId: string) {
     for (const recipient of recipients) {
       const sentAt = new Date().toISOString();
 
-      // Wind / 同花顺使用差异化主题，所有类型正文均为 HTML 摘要
+      // Wind / 同花顺 / Bloomberg 使用差异化主题与正文；analyst/contact/normal 使用 investment_thesis
       let subject: string | undefined;
-      const bodyHtml = report.investment_thesis || "";
+      let bodyHtml: string | undefined = report.investment_thesis || undefined;
       if (recipient.subscriptionType === "wind" || recipient.subscriptionType === "tonghuashun") {
         subject = generateEmailSubject(recipient.subscriptionType as SubscriptionType, report);
+      } else if (recipient.subscriptionType === "bloomberg_zh") {
+        subject = generateEmailSubject("bloomberg_zh", report);
+        bodyHtml = buildBloombergHtmlBody(report, "zh");
+      } else if (recipient.subscriptionType === "bloomberg_en") {
+        subject = generateEmailSubject("bloomberg_en", report);
+        bodyHtml = buildBloombergHtmlBody(report, "en");
       }
 
       console.log(`[process-queue] Sending to ${recipient.email} (${recipient.subscriptionType}): ${subject || "default"}`);

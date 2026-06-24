@@ -14,7 +14,7 @@ export type EmailConfig = {
   updated_at: string;
 };
 
-export type SubscriptionType = "normal" | "wind" | "tonghuashun";
+export type SubscriptionType = "normal" | "wind" | "tonghuashun" | "bloomberg_zh" | "bloomberg_en";
 
 export type EmailSubscription = {
   id: string;

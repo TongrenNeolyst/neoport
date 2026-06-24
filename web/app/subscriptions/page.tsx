@@ -15,6 +15,8 @@ const subscriptionTypeLabels: Record<SubscriptionType, string> = {
   normal: "普通订阅",
   wind: "Wind",
   tonghuashun: "同花顺",
+  bloomberg_zh: "彭博（中文）",
+  bloomberg_en: "彭博（英文）",
 };
 
 export default function SubscriptionsPage() {
@@ -158,6 +160,8 @@ export default function SubscriptionsPage() {
               <option value="normal">普通订阅</option>
               <option value="wind">Wind</option>
               <option value="tonghuashun">同花顺</option>
+              <option value="bloomberg_zh">彭博（中文）</option>
+              <option value="bloomberg_en">彭博（英文）</option>
             </select>
             <button
               type="submit"
