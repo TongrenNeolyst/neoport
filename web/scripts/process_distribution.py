@@ -199,39 +199,89 @@ def fetch_report(local: Client, report_id: str) -> dict | None:
 
 
 def fetch_recipients(local: Client, report: dict) -> list[dict]:
-    seen: dict[str, dict] = {}
+    """获取本报告的收件人列表。
+
+    去重策略：
+      1) 分析师与联系人之间按邮箱（lowercase）去重，分析师优先
+      2) 每个订阅类型（wind / tonghuashun / normal / bloomberg_zh / bloomberg_en）
+         内部按邮箱去重，防止同一 email 在 email_subscription 表里以多行存在
+         而被重复发送
+      3) 分析师 / 联系人 邮箱若同时出现在普通订阅（normal）里，跳过 normal
+         这一路（普通订阅与分析师 / 联系人的主题、正文完全相同，重复发没意义；
+         分析师 > 联系人 > 普通订阅）
+      4) 跨订阅类型（wind / tonghuashun / bloomberg）之间、以及它们与
+         分析师 / 联系人的交叉：仍按各自主题格式分别发送（不同格式是业务预期）
+    """
+    # 分析师 / 联系人 邮箱集合（lowercase），用于跨类型去重时优先匹配
+    analyst_contact_emails: set[str] = set()
+    seen_internal_contact: dict[str, dict] = {}
 
     report_id = report["id"]
 
+    # 1) 分析师
     resp = local.table("report_analyst").select("analyst_email").eq("report_id", report_id).execute()
     for a in resp.data or []:
-        email = a["analyst_email"].lower()
-        if email not in seen:
-            seen[email] = {"email": a["analyst_email"], "type": "analyst"}
+        email = (a.get("analyst_email") or "").strip().lower()
+        if not email or email in analyst_contact_emails:
+            continue
+        analyst_contact_emails.add(email)
+        seen_internal_contact[email] = {"email": a["analyst_email"], "type": "analyst"}
 
+    # 2) 联系人（邮箱未出现过才入库，分析师优先）
     resp = local.table("report_contact").select("contact_email").eq("report_id", report_id).execute()
     for c in resp.data or []:
-        email = c["contact_email"].lower()
-        if email not in seen:
-            seen[email] = {"email": c["contact_email"], "type": "contact"}
+        email = (c.get("contact_email") or "").strip().lower()
+        if not email or email in analyst_contact_emails:
+            continue
+        analyst_contact_emails.add(email)
+        seen_internal_contact[email] = {"email": c["contact_email"], "type": "contact"}
 
-    result = list(seen.values())
+    result: list[dict] = list(seen_internal_contact.values())
 
-    for sub_type in ("wind", "tonghuashun", "normal"):
+    # 3) 订阅类型：wind / tonghuashun（各自内部去重；不同主题/正文，保留重复发）
+    for sub_type in ("wind", "tonghuashun"):
         resp = local.table("email_subscription").select("email").eq(
             "subscription_type", sub_type
         ).eq("is_active", True).execute()
+        seen_in_type: set[str] = set()
         for s in resp.data or []:
+            email = (s.get("email") or "").strip().lower()
+            if not email or email in seen_in_type:
+                continue
+            seen_in_type.add(email)
             result.append({"email": s["email"], "type": sub_type})
 
-    # Bloomberg (彭博)：按 report.report_language 路由到对应语言的邮箱
-    #   - 'zh' → 仅 bloomberg_zh 订阅者收到
-    #   - 其他（'en' 或 null）→ 仅 bloomberg_en 订阅者收到
+    # 4) 普通订阅 normal：内部去重 + 分析师/联系人邮箱优先
+    #    同一邮箱如果在分析师/联系人名单里出现过，跳过 normal
+    #    （避免同一封主题、正文都相同的邮件被发两次）
+    resp = local.table("email_subscription").select("email").eq(
+        "subscription_type", "normal"
+    ).eq("is_active", True).execute()
+    seen_in_type = set()
+    for s in resp.data or []:
+        email = (s.get("email") or "").strip().lower()
+        if not email or email in seen_in_type:
+            continue
+        seen_in_type.add(email)
+        if email in analyst_contact_emails:
+            # 分析师/联系人已发送，normal 这一路跳过
+            continue
+        result.append({"email": s["email"], "type": "normal"})
+
+    # 5) Bloomberg（彭博）：按 report.report_language 路由到对应语言的邮箱
+    #    - 'zh' → 仅 bloomberg_zh 订阅者收到
+    #    - 其他（'en' 或 null）→ 仅 bloomberg_en 订阅者收到
+    #    同类型内部按邮箱去重（同一邮箱在该类型多行 → 仅发一次）
     bloomberg_type = resolve_bloomberg_subscription_type(report)
     resp = local.table("email_subscription").select("email").eq(
         "subscription_type", bloomberg_type
     ).eq("is_active", True).execute()
+    seen_in_type = set()
     for s in resp.data or []:
+        email = (s.get("email") or "").strip().lower()
+        if not email or email in seen_in_type:
+            continue
+        seen_in_type.add(email)
         result.append({"email": s["email"], "type": bloomberg_type})
 
     return result

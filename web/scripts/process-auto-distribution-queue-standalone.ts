@@ -328,75 +328,106 @@ async function fetchReport(reportId: string): Promise<ReportForEmail | null> {
 }
 
 // ===== 获取收件人 =====
+// 去重策略：
+//   1) 分析师与联系人之间按邮箱（lowercase）去重，分析师优先
+//   2) 每个订阅类型（wind / tonghuashun / normal / bloomberg_zh / bloomberg_en）
+//      内部按邮箱去重，防止同一 email 在 email_subscription 表里以多行存在
+//      而被重复发送
+//   3) 分析师 / 联系人 邮箱若同时出现在普通订阅（normal）里，跳过 normal
+//      这一路（普通订阅与分析师 / 联系人的主题、正文完全相同，重复发没意义；
+//      分析师 > 联系人 > 普通订阅）
+//   4) 跨订阅类型（wind / tonghuashun / bloomberg）之间、以及它们与
+//      分析师 / 联系人的交叉：仍按各自主题格式分别发送（不同格式是业务预期）
 async function fetchRecipients(report: ReportForEmail): Promise<RecipientEntry[]> {
-  // analyst/contact 内部去重（同一邮箱在 analyst + contact 中只保留一份，analyst 优先）
-  // 各订阅类型（wind/tonghuashun/bloomberg_zh/bloomberg_en/normal）独立成行
+  // 分析师 / 联系人 邮箱集合（lowercase），用于跨类型去重时优先匹配
+  const analystContactEmails = new Set<string>();
   const analystContactMap = new Map<string, RecipientEntry>();
 
-  // 分析师（先入，优先保留）
+  // 1) 分析师
   const { data: analysts } = await supabase
     .from("report_analyst")
     .select("analyst_email")
     .eq("report_id", report.id);
   if (analysts) {
     for (const a of analysts) {
-      const email = a.analyst_email.toLowerCase();
-      if (!analystContactMap.has(email)) {
-        analystContactMap.set(email, { email: a.analyst_email, subscriptionType: "analyst" });
-      }
+      const email = (a.analyst_email ?? "").trim().toLowerCase();
+      if (!email || analystContactEmails.has(email)) continue;
+      analystContactEmails.add(email);
+      analystContactMap.set(email, { email: a.analyst_email, subscriptionType: "analyst" });
     }
   }
 
-  // 联系人（后入，仅在邮箱未出现过时添加）
+  // 2) 联系人（邮箱未出现过才入库，分析师优先）
   const { data: contacts } = await supabase
     .from("report_contact")
     .select("contact_email")
     .eq("report_id", report.id);
   if (contacts) {
     for (const c of contacts) {
-      const email = c.contact_email.toLowerCase();
-      if (!analystContactMap.has(email)) {
-        analystContactMap.set(email, { email: c.contact_email, subscriptionType: "contact" });
-      }
+      const email = (c.contact_email ?? "").trim().toLowerCase();
+      if (!email || analystContactEmails.has(email)) continue;
+      analystContactEmails.add(email);
+      analystContactMap.set(email, { email: c.contact_email, subscriptionType: "contact" });
     }
   }
 
   const result: RecipientEntry[] = Array.from(analystContactMap.values());
 
-  // Wind
-  const { data: windSubs } = await supabase
+  // 3) 订阅类型：wind / tonghuashun（各自内部去重；不同主题/正文，保留重复发）
+  for (const subType of ["wind", "tonghuashun"] as const) {
+    const { data: subs } = await supabase
+      .from("email_subscription")
+      .select("email")
+      .eq("subscription_type", subType)
+      .eq("is_active", true);
+    if (!subs) continue;
+    const seenInType = new Set<string>();
+    for (const s of subs) {
+      const email = (s.email ?? "").trim().toLowerCase();
+      if (!email || seenInType.has(email)) continue;
+      seenInType.add(email);
+      result.push({ email: s.email, subscriptionType: subType });
+    }
+  }
+
+  // 4) 普通订阅 normal：内部去重 + 分析师/联系人邮箱优先
+  //    同一邮箱如果在分析师/联系人名单里出现过，跳过 normal
+  //    （避免同一封主题、正文都相同的邮件被发两次）
+  const { data: normalSubs } = await supabase
     .from("email_subscription")
     .select("email")
-    .eq("subscription_type", "wind")
+    .eq("subscription_type", "normal")
     .eq("is_active", true);
-  if (windSubs) for (const s of windSubs) result.push({ email: s.email, subscriptionType: "wind" });
+  if (normalSubs) {
+    const seenInType = new Set<string>();
+    for (const s of normalSubs) {
+      const email = (s.email ?? "").trim().toLowerCase();
+      if (!email || seenInType.has(email)) continue;
+      seenInType.add(email);
+      if (analystContactEmails.has(email)) continue; // 分析师/联系人已发送
+      result.push({ email: s.email, subscriptionType: "normal" });
+    }
+  }
 
-  // 同花顺
-  const { data: thsSubs } = await supabase
-    .from("email_subscription")
-    .select("email")
-    .eq("subscription_type", "tonghuashun")
-    .eq("is_active", true);
-  if (thsSubs) for (const s of thsSubs) result.push({ email: s.email, subscriptionType: "tonghuashun" });
-
-  // Bloomberg (彭博)：按 report.report_language 路由到对应语言的邮箱
-  //   - 'zh' → 仅 bloomberg_zh 订阅者收到
-  //   - 其他（包括 'en' 与 null）→ 仅 bloomberg_en 订阅者收到
+  // 5) Bloomberg (彭博)：按 report.report_language 路由到对应语言的邮箱
+  //    - 'zh' → 仅 bloomberg_zh 订阅者收到
+  //    - 其他（包括 'en' 与 null）→ 仅 bloomberg_en 订阅者收到
+  //    同类型内部按邮箱去重（同一邮箱在该类型多行 → 仅发一次）
   const bloombergType: SubscriptionType = report.report_language === "zh" ? "bloomberg_zh" : "bloomberg_en";
   const { data: bloombergSubs } = await supabase
     .from("email_subscription")
     .select("email")
     .eq("subscription_type", bloombergType)
     .eq("is_active", true);
-  if (bloombergSubs) for (const s of bloombergSubs) result.push({ email: s.email, subscriptionType: bloombergType });
-
-  // 普通
-  const { data: normalSubs } = await supabase
-    .from("email_subscription")
-    .select("email")
-    .eq("subscription_type", "normal")
-    .eq("is_active", true);
-  if (normalSubs) for (const s of normalSubs) result.push({ email: s.email, subscriptionType: "normal" });
+  if (bloombergSubs) {
+    const seenInType = new Set<string>();
+    for (const s of bloombergSubs) {
+      const email = (s.email ?? "").trim().toLowerCase();
+      if (!email || seenInType.has(email)) continue;
+      seenInType.add(email);
+      result.push({ email: s.email, subscriptionType: bloombergType });
+    }
+  }
 
   return result;
 }
