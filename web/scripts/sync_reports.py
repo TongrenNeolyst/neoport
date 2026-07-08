@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import sys
+import time
+from datetime import datetime, timedelta, timezone
 
 from supabase import Client
 
@@ -172,15 +174,131 @@ def sync_attachments(
 
 
 def add_to_distribution_queue(local: Client, local_id: str) -> None:
-    local.rpc("add_to_distribution_queue", {"p_report_id": local_id}).execute()
+    """带 3 次重试 + 指数退避（200ms / 800ms / 3200ms）的入队。
+
+    背景：曾出现 RPC 偶发失败导致 reports 主表已写入但 queue 缺失（孤儿报告），
+    增加重试可以显著降低这种偶发失败造成的业务影响。
+    """
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            local.rpc("add_to_distribution_queue", {"p_report_id": local_id}).execute()
+            return
+        except Exception as e:
+            last_err = e
+            if attempt < 2:
+                delay = 0.2 * (4 ** attempt)
+                print(
+                    f"[sync] add_to_distribution_queue attempt {attempt + 1} failed "
+                    f"for {local_id}: {e}; retrying in {delay}s",
+                    file=sys.stderr,
+                )
+                time.sleep(delay)
+    raise RuntimeError(
+        f"add_to_distribution_queue failed after 3 attempts: {last_err}"
+    )
+
+
+# 孤儿报告补偿窗口：只补偿最近 N 天内发布的报告，避免把旧系统同步过来的
+# 历史数据捞回来发邮件
+ORPHAN_RECOVER_WINDOW_DAYS = 7
+
+
+def recover_orphan_reports(local: Client) -> list[str]:
+    """找出"应该入队但漏入队"的报告，自动补入队。
+
+    关键过滤：
+      - 只看 published_at >= cutoff（默认 7 天前）的报告；
+        历史从旧系统同步过来的报告即使没入队也不需要补发邮件。
+      - 只补偿"queue 里完全没有任何记录"的报告。
+
+    这是修复 2026-07-08 那篇 AI 报告未发邮件的兜底逻辑——
+    即便 add_to_distribution_queue 当时抛错，下一轮同步会把它补上。
+
+    注意：add_to_distribution_queue RPC 是 ON CONFLICT (report_id) DO NOTHING 幂等的，
+    所以即便我们误判某个 report 已经有 queue 行，调用也只是 no-op；
+    真正"补成功"的判定：调用后 select queue 行是否真的存在。
+    """
+    cutoff = (
+        datetime.now(timezone.utc) - timedelta(days=ORPHAN_RECOVER_WINDOW_DAYS)
+    ).isoformat()
+
+    reports = (
+        local.table("reports")
+        .select("id")
+        .gte("published_at", cutoff)
+        .order("published_at", desc=True)
+        .limit(500)
+        .execute()
+        .data
+        or []
+    )
+    if not reports:
+        return []
+
+    ids = [r["id"] for r in reports]
+    queue_rows = (
+        local.table("report_distribution_queue")
+        .select("report_id")
+        .in_("report_id", ids)
+        .execute()
+        .data
+        or []
+    )
+    queue_set = {q["report_id"] for q in queue_rows}
+    orphans = [i for i in ids if i not in queue_set]
+    if not orphans:
+        return []
+
+    print(
+        f"[sync] recover orphan reports: {len(orphans)} "
+        f"(published_at >= {cutoff}, no queue row)",
+        file=sys.stderr,
+    )
+    recovered: list[str] = []
+    for rid in orphans:
+        try:
+            add_to_distribution_queue(local, rid)
+            # 二次校验：是否真的入队成功（ON CONFLICT 时 RPC 会返回成功但实际不插入）
+            check = (
+                local.table("report_distribution_queue")
+                .select("id")
+                .eq("report_id", rid)
+                .maybe_single()
+                .execute()
+                .data
+            )
+            if check:
+                recovered.append(rid)
+                print(f"[sync] orphan recovered: {rid}")
+            else:
+                print(f"[sync] orphan recovery no-op (queue row still missing): {rid}")
+        except Exception as e:
+            print(f"[sync] orphan recovery failed for {rid}: {e}", file=sys.stderr)
+    return recovered
 
 
 # ── 单次同步 ──
 
 def sync_once(neo: Client, local: Client, since: datetime) -> dict:
+    # 1) 先做孤儿补偿（防止历史孤儿报告 + 兜底本轮 add_to_distribution_queue 失败的报告）
+    recovered_ids: list[str] = []
+    try:
+        recovered_ids = recover_orphan_reports(local)
+    except Exception as e:
+        print(
+            f"[sync] recover_orphan_reports failed: {e}",
+            file=sys.stderr,
+        )
+
     reports = fetch_published_reports(neo, since)
     if not reports:
-        return {"synced": 0, "skipped": 0, "errors": []}
+        return {
+            "synced": 0,
+            "skipped": 0,
+            "recovered": len(recovered_ids),
+            "errors": [],
+        }
 
     all_emails = list({
         e.lower()
@@ -203,7 +321,12 @@ def sync_once(neo: Client, local: Client, since: datetime) -> dict:
     coverage_ids = [r.get("coverage_id") for r in reports if r.get("coverage_id")]
     ticker_names = resolve_ticker_names(neo, coverage_ids)
 
-    result: dict = {"synced": 0, "skipped": 0, "errors": []}
+    result: dict = {
+        "synced": 0,
+        "skipped": 0,
+        "recovered": len(recovered_ids),
+        "errors": [],
+    }
 
     for r in reports:
         try:

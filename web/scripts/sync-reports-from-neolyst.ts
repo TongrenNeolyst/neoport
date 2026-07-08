@@ -335,24 +335,111 @@ async function syncAttachments(
 
 // ===== 加入分发队列 =====
 async function addToDistributionQueue(localId: string): Promise<void> {
-  const { error } = await localClient.rpc("add_to_distribution_queue", {
-    p_report_id: localId,
-  });
-
-  if (error) {
-    throw new Error(`add_to_distribution_queue failed: ${error.message}`);
+  // 最多重试 3 次，指数退避（200ms / 800ms / 3200ms）
+  // 背景：曾出现 RPC 偶发失败导致主表已写入但队列缺失（孤儿报告）
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await localClient.rpc("add_to_distribution_queue", {
+      p_report_id: localId,
+    });
+    if (!error) return;
+    lastErr = error;
+    if (attempt < 2) {
+      const delay = 200 * Math.pow(4, attempt);
+      console.warn(`[sync] add_to_distribution_queue attempt ${attempt + 1} failed for ${localId}: ${error.message}; retrying in ${delay}ms`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
   }
+  throw new Error(
+    `add_to_distribution_queue failed after 3 attempts: ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+  );
+}
+
+/**
+ * 孤儿报告补偿：找出"应该入队但漏入队"的报告，自动补入队。
+ *
+ * 关键过滤：
+ *   - 只看 published_at >= cutoff（默认 7 天前）的报告；
+ *     历史从旧系统同步过来的报告即使没入队也不需要补发邮件。
+ *   - 只补偿"queue 里完全没有任何记录"的报告（不是补 waiting/processing 中断的）。
+ *
+ * 这是修复 2026-07-08 那篇 AI 报告未发邮件的兜底逻辑——
+ * 即便 addToDistributionQueue 当时抛错，下一轮同步会把它补上。
+ *
+ * 注意：add_to_distribution_queue RPC 是 ON CONFLICT (report_id) DO NOTHING 幂等的，
+ * 所以即便我们误判某个 report 已经有 queue 行，调用也只是 no-op；
+ * 真正"补成功"的判定：调用后 select queue 行是否真的存在。
+ */
+const ORPHAN_RECOVER_WINDOW_DAYS = 7;
+
+async function recoverOrphanReports(): Promise<string[]> {
+  const cutoff = new Date(Date.now() - ORPHAN_RECOVER_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  // 取 cutoff 之后发布的报告（排除旧系统同步过来的历史报告）
+  const { data: reports, error } = await localClient
+    .from("reports")
+    .select("id, published_at")
+    .gte("published_at", cutoff)
+    .order("published_at", { ascending: false })
+    .limit(500);
+  if (error || !reports || reports.length === 0) return [];
+
+  const ids = reports.map((r) => r.id);
+  const { data: queueRows } = await localClient
+    .from("report_distribution_queue")
+    .select("report_id, status")
+    .in("report_id", ids);
+
+  const queueByReport = new Map<string, string>();
+  for (const q of queueRows ?? []) queueByReport.set(q.report_id, q.status);
+
+  const orphans = ids.filter((id) => !queueByReport.has(id));
+  if (orphans.length === 0) return [];
+
+  console.warn(
+    `[sync] recover orphan reports: ${orphans.length} (published_at >= ${cutoff}, no queue row)`,
+  );
+  const recovered: string[] = [];
+  for (const id of orphans) {
+    try {
+      await addToDistributionQueue(id);
+      // 二次校验：是否真的入队成功（ON CONFLICT 时 RPC 会返回成功但实际不插入）
+      const { data: check } = await localClient
+        .from("report_distribution_queue")
+        .select("id")
+        .eq("report_id", id)
+        .maybeSingle();
+      if (check) {
+        recovered.push(id);
+        console.log(`[sync] orphan recovered: ${id}`);
+      } else {
+        console.warn(`[sync] orphan recovery no-op (queue row still missing): ${id}`);
+      }
+    } catch (err) {
+      console.error(`[sync] orphan recovery failed for ${id}:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return recovered;
 }
 
 // ===== 单次同步 =====
 export async function syncOnce(since: Date): Promise<{
   synced: number;
   skipped: number;
+  recovered: number;
   errors: string[];
 }> {
+  // 1) 先做孤儿补偿（防止历史孤儿报告 + 兜底本轮 addToDistributionQueue 失败的报告）
+  let recoveredIds: string[] = [];
+  try {
+    recoveredIds = await recoverOrphanReports();
+  } catch (err) {
+    console.error("[sync] recoverOrphanReports failed:", err instanceof Error ? err.message : err);
+  }
+
   const reports = await fetchNeolystReports(since);
   if (reports.length === 0) {
-    return { synced: 0, skipped: 0, errors: [] };
+    return { synced: 0, skipped: 0, recovered: recoveredIds.length, errors: [] };
   }
 
   // 批量解析分析师姓名
@@ -441,7 +528,7 @@ export async function syncOnce(since: Date): Promise<{
     }
   }
 
-  return result;
+  return { ...result, recovered: recoveredIds.length };
 }
 
 // ===== 解析命令行参数 =====
@@ -477,6 +564,7 @@ async function main() {
     if (result.errors.length > 0) {
       console.error("[sync] Errors:", result.errors);
     }
+    console.log(`[sync] Full sync done. synced=${result.synced}, skipped=${result.skipped}, recovered=${result.recovered}, errors=${result.errors.length}`);
     return;
   }
 
@@ -492,7 +580,7 @@ async function main() {
     try {
       const result = await syncOnce(since);
       console.log(
-        `[${new Date().toISOString()}] [sync] Done. synced=${result.synced}, skipped=${result.skipped}, errors=${result.errors.length}`,
+        `[${new Date().toISOString()}] [sync] Done. synced=${result.synced}, skipped=${result.skipped}, recovered=${result.recovered}, errors=${result.errors.length}`,
       );
       if (result.errors.length > 0) {
         console.error("[sync] Errors:", result.errors);
