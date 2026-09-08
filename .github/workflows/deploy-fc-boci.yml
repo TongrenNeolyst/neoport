@@ -58,3 +58,11 @@ jobs:
 
       - name: Deploy to FC
         run: s deploy -y -t s.boci.yaml
+
+      # 同步定时任务：独立的 event 函数（HTTP 函数不能再挂其它触发器）
+      - name: Build sync bundle
+        run: node_modules/.bin/esbuild fc-sync/handler.ts --bundle --platform=node --target=node20 --format=cjs --outfile=fc-sync/dist/index.js
+
+      - name: Deploy sync function
+        working-directory: web/fc-sync
+        run: s deploy -y -t s.boci.yaml
