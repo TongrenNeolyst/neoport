@@ -41,11 +41,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 同步函数要 ws（见 fc-sync/entry.boci.ts）。Next 的 typecheck 覆盖整个 web/，
-      # 所以必须在构建前装好；只装在 runner 里，不写进仓库依赖。
-      - name: Add sync-only deps
-        run: pnpm add -D ws @types/ws
-
       - name: Build Next.js
         run: pnpm build
 
@@ -62,12 +57,4 @@ jobs:
             -a default -f
 
       - name: Deploy to FC
-        run: s deploy -y -t s.boci.yaml
-
-      # 同步定时任务：独立的 event 函数（HTTP 函数不能再挂其它触发器）
-      - name: Build sync bundle
-        run: node_modules/.bin/esbuild fc-sync/entry.boci.ts --bundle --platform=node --target=node20 --format=cjs --outfile=fc-sync/dist/index.js
-
-      - name: Deploy sync function
-        working-directory: web/fc-sync
         run: s deploy -y -t s.boci.yaml
