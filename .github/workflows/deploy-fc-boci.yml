@@ -60,8 +60,11 @@ jobs:
         run: s deploy -y -t s.boci.yaml
 
       # 同步定时任务：独立的 event 函数（HTTP 函数不能再挂其它触发器）
+      # ws 不进 package.json：改依赖就要同步改 pnpm-lock，而 CI 用的是 --frozen-lockfile
       - name: Build sync bundle
-        run: node_modules/.bin/esbuild fc-sync/handler.ts --bundle --platform=node --target=node20 --format=cjs --outfile=fc-sync/dist/index.js
+        run: |
+          npm i --no-save ws
+          node_modules/.bin/esbuild fc-sync/entry.boci.ts --bundle --platform=node --target=node20 --format=cjs --outfile=fc-sync/dist/index.js
 
       - name: Deploy sync function
         working-directory: web/fc-sync
