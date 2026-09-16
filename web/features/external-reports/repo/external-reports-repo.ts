@@ -80,7 +80,10 @@ const PAGE_SIZE = 20;
 
 export type ListExternalReportsParams = {
   page: number;
-  query?: string | null;
+  title?: string | null;
+  ticker?: string | null;
+  reportType?: string | null;
+  analyst?: string | null;
 };
 
 export type ExternalReportDetail = ExternalReport & {
@@ -134,8 +137,17 @@ export async function listExternalReports(
     .select("*", { count: "exact" })
     .order("published_at", { ascending: false });
 
-  if (params.query) {
-    queryBuilder = queryBuilder.ilike("title", `%${params.query}%`);
+  if (params.title) {
+    queryBuilder = queryBuilder.ilike("title", `%${params.title}%`);
+  }
+  if (params.ticker) {
+    queryBuilder = queryBuilder.ilike("ticker", `%${params.ticker}%`);
+  }
+  if (params.reportType) {
+    queryBuilder = queryBuilder.eq("report_type", params.reportType);
+  }
+  if (params.analyst) {
+    queryBuilder = queryBuilder.ilike("analyst", `%${params.analyst}%`);
   }
 
   const page = Math.max(1, params.page ?? 1);

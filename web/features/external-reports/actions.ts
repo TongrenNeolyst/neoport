@@ -13,7 +13,10 @@ import {
 
 export async function listExternalReportsAction(input: {
   page?: number;
-  query?: string | null;
+  title?: string | null;
+  ticker?: string | null;
+  reportType?: string | null;
+  analyst?: string | null;
 }): Promise<
   Result<{
     items: ExternalReport[];
@@ -28,7 +31,13 @@ export async function listExternalReportsAction(input: {
     return err("No permission");
   }
 
-  return listExternalReports({ page: input.page ?? 1, query: input.query ?? null });
+  return listExternalReports({
+    page: input.page ?? 1,
+    title: input.title ?? null,
+    ticker: input.ticker ?? null,
+    reportType: input.reportType ?? null,
+    analyst: input.analyst ?? null,
+  });
 }
 
 export async function getExternalReportDetailAction(
